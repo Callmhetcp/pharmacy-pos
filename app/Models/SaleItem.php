@@ -14,4 +14,14 @@ class SaleItem extends Model
         'unit_price',
         'subtotal',
     ];
+
+    public function medicine(){
+
+        return $this->belongsTo(Medicine::class);
+    }
+
+    public function sale(){
+
+        return $this->belongsTo(Sale::class);
+    }
 }

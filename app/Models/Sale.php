@@ -7,10 +7,27 @@ use Illuminate\Database\Eloquent\Model;
 class Sale extends Model
 {
     protected $fillable = [
+        'receipt_number',
         'customer_id',
         'user_id',
         'total_amount',
         'sale_date',
+        'amount_paid',
+        'balance',
+        'payment_method'
     
     ];
+
+    public function customer(){
+
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function user(){
+
+        return $this->belongsTo(User::class);
+    }
+    public function saleItems(){
+        return $this->hasMany(SaleItem::class);
+    }
 }

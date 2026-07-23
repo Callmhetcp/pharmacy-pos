@@ -46,4 +46,12 @@ Route:: post('/sales/add-to-cart',[SaleController::class, 'addToCart'])
 Route::post('/sales/store', [SaleController::class, 'store'])->name('sales.store');
 Route::get('/sales/clear-cart', [SaleController::class,'clearCart'])
     ->name('sales.clearCart');
+Route::delete('/cart/{id}',[SaleController::class, 'removeCart'])
+    ->name('cart.remove');
+Route::get('/sales/{sale}/receipt', [SaleController::class,'receipt'])
+    ->name('sales.receipt');
+Route::get('/sales/history',[SaleController::class, 'history'])->name('sales.history');
+Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
+Route::post('sales/customerType', [SaleController::class,'customerType'])
+    ->name('sales.customerType');
 
