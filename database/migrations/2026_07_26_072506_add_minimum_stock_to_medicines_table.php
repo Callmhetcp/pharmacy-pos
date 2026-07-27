@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('sales', function (Blueprint $table) {
+        Schema::table('medicines', function (Blueprint $table) {
             
-            $table->foreignId('user_id')->after('customer_id')->constrained();
+            $table->integer('minimum_stock')
+                ->default(10)
+                ->after('quantity');
         });
     }
 
@@ -22,10 +24,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('sales', function (Blueprint $table) {
+        Schema::table('medicines', function (Blueprint $table) {
             
-            $table->dropForeign(['user_id']);
-            $table->dropColumn('user_id');
+            $table->dropColumn('minimum_stock');
         });
     }
 };

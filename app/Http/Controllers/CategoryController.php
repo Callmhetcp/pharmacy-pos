@@ -8,12 +8,28 @@ use App\Models\Medicine;
 
 class CategoryController extends Controller
 {
-    public function index(){
+   public function index(Request $request)
+{
+    $search = $request->search;
 
-        $categories = Category::all();
-        return view('categories.index', compact('categories'));
+    $categories = Category::when($search, function ($query) use ($search) {
+
+        $query->where('name', 'like', "%{$search}%")
+              ->orWhere('description', 'like', "%{$search}%");
+
+    })
+    ->latest()
+    ->paginate(20)
+    ->withQueryString();
+
+    if ($request->ajax()) {
+
+        return view('categories.table', compact('categories'))->render();
+
     }
 
+    return view('categories.index', compact('categories', 'search'));
+}
     public function store(Request $request){
 
         $request->validate([

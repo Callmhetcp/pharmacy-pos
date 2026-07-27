@@ -7,15 +7,29 @@ use App\Models\Customer;
 
 class CustomerController extends Controller
 {
-    public function index(){
+    public function index(Request $request)
+{
+    $search = $request->search;
 
-    $customers = Customer::all();
+    $customers = Customer::when($search, function ($query) use ($search) {
 
-    return view ('customers.index', compact ('customers'));
+        $query->where('name', 'like', "%{$search}%")
+              ->orWhere('phone_number', 'like', "%{$search}%")
+              ->orWhere('address', 'like', "%{$search}%");
 
-        
+    })
+    ->latest()
+    ->paginate(20)
+    ->withQueryString();
+
+    if ($request->ajax()) {
+
+        return view('customers.table', compact('customers'))->render();
 
     }
+
+    return view('customers.index', compact('customers', 'search'));
+}
 
     public function store(Request $request){
 

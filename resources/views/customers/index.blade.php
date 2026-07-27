@@ -1,81 +1,213 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Customer Management</title>
-</head>
-<body>
+@extends('layouts.app')
 
-    @extends('layouts.app')
+@section('content')
 
-    @section('content')
+<div class="container-fluid">
 
-    
-        <x-form-card title="Customer Management">
+    <div class="row">
 
-            <h1>Customer Management</h1>
-        
-            <form action="/customers" method="POST">
-        
-                @csrf
-        
-                <label for="">Customers Name</label>
-                <input type="text" name="name"><br><br>
-        
-                <label for="">Phone Number</label>
-                <input type="tel" name="phone_number"><br><br>
-        
-                <label for="">Address</label>
-                <textarea type="text" name="address" id=""></textarea><br><br>
-        
-                <button type="submit" class="btn btn-primary btn-lg px-5">Submit Customer</button>
-        
-            </form>
-        </x-form-card>
+        <!-- Add Customer -->
+        <div class="col-lg-4 mb-4">
 
+            <div class="card border-0 shadow-sm">
 
-    <x-table-card title="Customers">
+                <div class="card-header bg-primary text-white">
 
-        <table>
-            <tr>
-                <th>S/N</th>
-                <th>Customers Name</th>
-                <th>Phone Number</th>
-                <th>Address</th>
-                <th>Action</th>
-            </tr>
-            
-            @foreach ($customers as $customer )
-    
-                <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td>{{ $customer->name }}</td>
-                    <td>{{ $customer->phone_number }}</td>
-                    <td>{{ $customer->address }}</td>
-                    <td>
-                        <a href="/customers/{{ $customer->id }}/edit" class="btn btn-warning btn-sm">Edit</a>
-                    <form action="/customers/{{ $customer->id }}" method="POST">
+                    <h5 class="mb-0">
 
-                            @csrf
-                            @method('DELETE')
+                        <i class="fas fa-user-plus me-2"></i>
 
-                            <button type="submit" 
-                            onclick="return confirm('Are you sure you want to delete this customer?')"
-                            class="btn btn-danger btn-sm">
-                                Delete
-                            </button>
+                        Add New Customer
+
+                    </h5>
+
+                </div>
+
+                <div class="card-body">
+
+                    <form action="{{ route('customers.store') }}" method="POST">
+
+                        @csrf
+
+                        <div class="mb-3">
+
+                            <label class="form-label fw-semibold">
+
+                                Customer Name
+
+                            </label>
+
+                            <input
+                                type="text"
+                                name="name"
+                                class="form-control"
+                                value="{{ old('name') }}"
+                                placeholder="Enter customer name"
+                                required>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label fw-semibold">
+
+                                Phone Number
+
+                            </label>
+
+                            <input
+                                type="tel"
+                                name="phone_number"
+                                class="form-control"
+                                value="{{ old('phone_number') }}"
+                                placeholder="Enter phone number"
+                                required>
+
+                        </div>
+
+                        <div class="mb-4">
+
+                            <label class="form-label fw-semibold">
+
+                                Address
+
+                            </label>
+
+                            <textarea
+                                name="address"
+                                rows="4"
+                                class="form-control"
+                                placeholder="Enter customer address">{{ old('address') }}</textarea>
+
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary w-100">
+
+                            <i class="fas fa-save me-2"></i>
+
+                            Save Customer
+
+                        </button>
 
                     </form>
-                    </td>
-                </tr>
-                
-            @endforeach
-    
-        </table>
-    </x-table-card>
-    @endsection
-    
-</body>
-</html>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Customer List -->
+        <div class="col-lg-8">
+
+            <div class="card border-0 shadow-sm">
+
+                <div class="card-header bg-white">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+
+                        <div>
+
+                            <h5 class="mb-0 fw-bold">
+                                <i class="fas fa-users text-primary me-2"></i>
+                                Customer Directory
+                            </h5>
+
+                            <small class="text-muted">
+                                Total Customers: {{ $customers->total() }}
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                    <div class="input-group">
+
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+
+                        <input
+                            type="text"
+                            id="search"
+                            class="form-control"
+                            placeholder="Search customer by name, phone or address..."
+                            autocomplete="off"
+                            value="{{ request('search') }}">
+
+                    </div>
+
+                </div>
+                <div class="card-body p-0">
+
+                    <div class="table-responsive">
+
+                        <table class="table table-hover align-middle mb-0">
+
+                            <thead class="table-light">
+
+                                <tr>
+
+                                    <th>#</th>
+                                    <th>Customer Name</th>
+                                    <th>Phone Number</th>
+                                    <th>Address</th>
+                                    <th class="text-center">Actions</th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody id="tableBody">
+
+                               @include('customers.table')
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const search = document.getElementById('search');
+
+    search.addEventListener('keyup', function () {
+
+        fetch("{{ route('customers.index') }}?search=" + encodeURIComponent(this.value), {
+
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+
+        })
+
+        .then(response => response.text())
+
+        .then(html => {
+
+            document.getElementById('tableBody').innerHTML = html;
+
+        })
+
+        .catch(error => console.error(error));
+
+    });
+
+});
+</script>
+
+@endsection

@@ -1,70 +1,190 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Category Management</title>
-</head>
-<body>
+@extends('layouts.app')
 
-     @extends('layouts.app')
+@section('content')
 
-    @section('content')
+<div class="container-fluid">
 
-   <x-form-card title="Categories Management">
+    <div class="row">
 
-       <form action="/categories" method="POST">
-   
-           @csrf
-   
-           <label for="">Category Name</label>
-           <input type="text" name="name"><br><br>
-   
-           <label for="">Description</label><br>
-           <textarea name="description" id=""></textarea><br><br>
-   
-           <button type="submit" class="btn btn-primary btn-lg px-5">
-               Save Category
-           </button>
-       </form>
-   </x-form-card>
+        <!-- Add Category -->
+        <div class="col-lg-4 mb-4">
 
-    <x-table-card title="Categories">
+            <div class="card border-0 shadow-sm">
 
-    </x-table-card>
-    <table>
-        <tr>
-            <th>S/N</th>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Action</th>
-        </tr>
-        
-            @foreach ($categories as $category )
-            <tr>
-                <td>{{ $loop->iteration}}</td>
-                <td>{{ $category->name }}</td>
-                <td>{{ $category->description }}</td>
-                <td>
-                    <a href="/categories/{{ $category->id }}/edit"  class="btn btn-warning btn-sm">Edit</a><br>
-                    <form action="/categories/{{ $category->id }}" method="POST">
+                <div class="card-header bg-primary text-white">
+
+                    <h5 class="mb-0">
+
+                        <i class="fas fa-layer-group me-2"></i>
+
+                        Add New Category
+
+                    </h5>
+
+                </div>
+
+                <div class="card-body">
+
+                    <form action="{{ route('categories.store') }}" method="POST">
 
                         @csrf
-                        @method('DELETE')
 
-                        <button type="submit" 
-                        onclick="return confirm('Are you sure you want to delete this category?')"
-                        class="btn btn-danger btn-sm">
-                            Delete
+                        <div class="mb-3">
+
+                            <label class="form-label fw-semibold">
+
+                                Category Name
+
+                            </label>
+
+                            <input
+                                type="text"
+                                name="name"
+                                class="form-control"
+                                placeholder="Enter category name"
+                                required>
+
+                        </div>
+
+                        <div class="mb-4">
+
+                            <label class="form-label fw-semibold">
+
+                                Description
+
+                            </label>
+
+                            <textarea
+                                name="description"
+                                rows="5"
+                                class="form-control"
+                                placeholder="Enter category description"></textarea>
+
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary w-100">
+
+                            <i class="fas fa-save me-2"></i>
+
+                            Save Category
+
                         </button>
 
                     </form>
-                </td>
-            </tr>
-            @endforeach
-        </table>
-        @endsection
 
-</body>
-</html>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Category List -->
+        <div class="col-lg-8">
+
+            <div class="card border-0 shadow-sm">
+
+                <div class="card-header bg-white">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+
+                        <div>
+
+                            <h5 class="mb-0 fw-bold">
+                                <i class="fas fa-layer-group text-primary me-2"></i>
+                                Category List
+                            </h5>
+
+                            <small class="text-muted">
+                                Total Categories: {{ $categories->total() }}
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                    <div class="input-group">
+
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+
+                        <input
+                            type="text"
+                            id="search"
+                            class="form-control"
+                            placeholder="Search category name or description..."
+                            autocomplete="off"
+                            value="{{ request('search') }}">
+
+                    </div>
+
+                </div>
+
+                <div class="card-body p-0">
+
+                    <div class="table-responsive">
+
+                        <table class="table table-hover align-middle mb-0">
+
+                            <thead class="table-light">
+
+                                <tr>
+
+                                    <th>#</th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th class="text-center">Actions</th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody id="tableBody">
+
+                                @include('categories.table')
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const search = document.getElementById('search');
+
+    search.addEventListener('keyup', function () {
+
+        fetch("{{ route('categories.index') }}?search=" + encodeURIComponent(this.value), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+
+            document.getElementById('tableBody').innerHTML = html;
+
+        })
+        .catch(error => console.error(error));
+
+    });
+
+});
+</script>
+
+@endsection
+

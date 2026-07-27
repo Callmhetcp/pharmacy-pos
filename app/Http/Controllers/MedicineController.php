@@ -8,20 +8,44 @@ use App\Models\Medicine;
 
 class MedicineController extends Controller
 {
-    public function index(){
+   public function index(Request $request)
+{
+    $search = $request->search;
 
-        $medicines = Medicine::all();
-        $categories = Category::all();
+    $medicines = Medicine::with('category')
+        ->when($search, function ($query) use ($search) {
 
-        return view('medicines.index', compact('medicines','categories'));
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhere('quantity', 'like', "%{$search}%")
+                  ->orWhere('cost_price', 'like', "%{$search}%")
+                  ->orWhere('selling_price', 'like', "%{$search}%")
+                  ->orWhereHas('category', function ($q) use ($search) {
 
-        
+                      $q->where('name', 'like', "%{$search}%");
+
+                  });
+
+        })
+        ->latest()
+        ->paginate(20)
+        ->withQueryString();
+
+    $categories = Category::all();
+
+    if ($request->ajax()) {
+
+        return view('medicines.table', compact('medicines'))->render();
+
     }
+
+    return view('medicines.index', compact('medicines', 'categories', 'search'));
+}
 
     public function store(Request $request){
 
     $request->validate([
         'name'=>'required|string|min:3|max:100',
+        'minimum_stock' => 'required|integer|min:0',
         'quantity'=>'required|integer|min:0',
         'cost_price'=>'required|numeric|min:0',
         'selling_price'=>'required|numeric|min:0',
@@ -60,6 +84,7 @@ class MedicineController extends Controller
 
         $medicine->name = $request->name;
         $medicine->quantity = $request->quantity;
+        $medicine->minimum_stock = $request->minimum_stock;
         $medicine->cost_price = $request->cost_price;
         $medicine->selling_price = $request->selling_price;
         $medicine->expiry_date = $request->expiry_date;
@@ -72,14 +97,38 @@ class MedicineController extends Controller
 
     }
 
-    public function destroy($id){
+   public function destroy($id)
+{
+    $medicine = Medicine::findOrFail($id);
 
-    $medicine = Medicine::find($id);
+    if (
+        $medicine->saleItems()->exists() ||
+        $medicine->purchaseItems()->exists() ||
+        $medicine->stockMovements()->exists() ||
+        $medicine->stockAdjustments()->exists() ||
+        $medicine->purchaseReturnItems()->exists() ||
+        $medicine->salesReturnItems()->exists()
+    ) {
+        return redirect('/medicines')
+            ->with('error', 'Cannot delete this medicine because it has transaction history.');
+    }
 
     $medicine->delete();
 
     return redirect('/medicines')
-        ->with('success','Medicine has been deleted successfully.');
+        ->with('success', 'Medicine deleted successfully.');
+}
 
-    }
+ public function search(Request $request)
+{
+    $search = $request->search;
+
+    $medicines = Medicine::where('name', 'like', "%{$search}%")
+        ->where('quantity', '>', 0)
+        ->select('id', 'name', 'selling_price', 'quantity')
+        ->limit(10)
+        ->get();
+
+    return response()->json($medicines);
+}
 }

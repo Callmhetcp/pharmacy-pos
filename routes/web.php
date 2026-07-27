@@ -1,57 +1,408 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\MedicineController;
+use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\SaleDraftController;
+use App\Http\Controllers\StockAdjustmentController;
+use App\Http\Controllers\PurchaseReturnController;
+use App\Http\Controllers\SalesReturnController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 
+
+
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/categories', [CategoryController::class, 'index']);
-Route::post('/categories',[CategoryController::class,'store']);
-Route::get('/categories/{id}/edit',[CategoryController::class, 'edit']);
-Route::put('/categories/{id}',[CategoryController::class,'update']);
-Route::delete('/categories/{id}',[CategoryController::class, 'destroy']);
-
-
-Route::get('/suppliers', [SupplierController::class, 'index']);
-Route::post('/suppliers', [SupplierController::class, 'store']);
-Route::get('/suppliers/{id}/edit',[SupplierController::class, 'edit']);
-Route::put('/suppliers/{id}',[SupplierController::class,'update']);
-Route::delete('/suppliers/{id}',[SupplierController::class,'destroy']);
-
-Route:: get('/medicines', [MedicineController::class, 'index']);
-Route:: post('/medicines', [MedicineController::class, 'store']);
-Route::get('/medicines/{id}/edit',[MedicineController::class, 'edit']);
-Route::put('/medicines/{id}',[MedicineController::class,'update']);
-Route::delete('/medicines/{id}',[MedicineController::class,'destroy']);
-
-Route:: get('/customers',[CustomerController::class,'index']);
-Route:: post('/customers',[CustomerController::class,'store']);
-Route::get('/customers/{id}/edit',[CustomerController::class, 'edit']);
-Route::put('/customers/{id}',[CustomerController::class,'update']);
-Route::delete('/customers/{id}',[CustomerController::class,'destroy']);
 
 
 
-Route:: get('/sales',[SaleController::class, 'index']);
-Route:: post('/sales',[SaleController::class, 'store']);
-Route:: post('/sales/add-to-cart',[SaleController::class, 'addToCart'])
-    ->name('sales.addToCart');
-Route::post('/sales/store', [SaleController::class, 'store'])->name('sales.store');
-Route::get('/sales/clear-cart', [SaleController::class,'clearCart'])
-    ->name('sales.clearCart');
-Route::delete('/cart/{id}',[SaleController::class, 'removeCart'])
-    ->name('cart.remove');
-Route::get('/sales/{sale}/receipt', [SaleController::class,'receipt'])
-    ->name('sales.receipt');
-Route::get('/sales/history',[SaleController::class, 'history'])->name('sales.history');
-Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
-Route::post('sales/customerType', [SaleController::class,'customerType'])
-    ->name('sales.customerType');
 
+
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')->group(function () {
+
+/*
+|--------------------------------------------------------------------------
+| Dashboard
+|--------------------------------------------------------------------------
+*/
+
+    
+   Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'role:admin,cashier'])
+    ->name('dashboard');
+        /*
+    |--------------------------------------------------------------------------
+    | Profile
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/profile', [ProfileController::class,'edit'])
+        ->name('profile.edit');
+
+    Route::patch('/profile', [ProfileController::class,'update'])
+        ->name('profile.update');
+
+    Route::delete('/profile', [ProfileController::class,'destroy'])
+        ->name('profile.destroy');
+        
+     Route::middleware('role:admin')->group(function () {
+
+        /*
+    |--------------------------------------------------------------------------
+    | Users Route
+    |--------------------------------------------------------------------------
+    */
+   Route::resource('users', UserController::class)
+    ->middleware('role:admin');
+
+    Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])
+    ->name('users.toggleStatus')
+    ->middleware('role:admin');
+    });
+
+      Route::middleware('role:admin,pharmacist')->group(function () {
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Categories
+        |--------------------------------------------------------------------------
+        */
+    
+        Route::get('/categories', [CategoryController::class,'index'])
+            ->name('categories.index');
+    
+        Route::post('/categories', [CategoryController::class,'store'])
+            ->name('categories.store');
+    
+        Route::get('/categories/{id}/edit', [CategoryController::class,'edit'])
+            ->name('categories.edit');
+    
+        Route::put('/categories/{id}', [CategoryController::class,'update'])
+            ->name('categories.update');
+    
+        Route::delete('/categories/{id}', [CategoryController::class,'destroy'])
+            ->name('categories.destroy');
+    
+
+    });   
+    
+      Route::middleware('role:admin,pharmacist,storekeeper')->group(function () {
+
+        /*
+    |--------------------------------------------------------------------------
+    | Medicines
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/medicines', [MedicineController::class,'index'])
+        ->name('medicines.index')
+        ->middleware('role:admin,pharmacist');
+
+    Route::post('/medicines', [MedicineController::class,'store'])
+        ->name('medicine.store')
+        ->middleware('role:admin,pharmacist');
+
+    Route::get('/medicines/{id}/edit', [MedicineController::class,'edit'])
+        ->name('medicine.edit')
+        ->middleware('role:admin,pharmacist');
+
+    Route::put('/medicines/{id}', [MedicineController::class,'update'])
+        ->name('medicine.update')
+        ->middleware('role:admin,pharmacist');
+
+    Route::delete('/medicines/{id}', [MedicineController::class,'destroy'])
+        ->name('medicine.destroy');
+
+    Route::get('/medicines/search', [MedicineController::class,'search'])
+        ->name('medicines.search')
+        ->middleware('role:admin,pharmacist');
+
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Inventory
+    |--------------------------------------------------------------------------
+    */
+
+    Route::resource('inventory', InventoryController::class)
+        ->except(['show']);
+
+
+    Route::get(
+        '/inventory/ledger',
+        [InventoryController::class,'ledger']
+    )->name('inventory.ledger');
+
+
+
+
+
+    });
+  Route::middleware('role:admin,storekeeper')->group(function () {
+
+       
+        
+       
+        // Stock Adjustments
+
+        /*
+        |--------------------------------------------------------------------------
+        | Suppliers
+        |--------------------------------------------------------------------------
+        */
+    
+        Route::get('/suppliers', [SupplierController::class,'index'])
+            ->name('suppliers.index');
+    
+        Route::post('/suppliers', [SupplierController::class,'store'])
+            ->name('suppliers.store');
+    
+        Route::get('/suppliers/{id}/edit', [SupplierController::class,'edit'])
+            ->name('suppliers.edit');
+    
+        Route::put('/suppliers/{id}', [SupplierController::class,'update'])
+            ->name('suppliers.update');
+    
+        Route::delete('/suppliers/{id}', [SupplierController::class,'destroy'])
+            ->name('suppliers.destroy');
+
+        
+    /*
+        |--------------------------------------------------------------------------
+        | Purchases
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource('purchase', PurchaseController::class);
+
+        Route::get(
+            '/purchase/{purchase}/receipt',
+            [PurchaseController::class,'receipt']
+        )->name('purchase.receipt');
+
+
+         /*
+        |--------------------------------------------------------------------------
+        | Purchase Returns
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource(
+            'purchase-returns',
+            PurchaseReturnController::class
+        );
+
+
+        Route::get(
+            '/purchase-returns/purchase/{purchase}',
+            [PurchaseReturnController::class,'getPurchase']
+        )->name('purchase-returns.purchase');
+
+         /*
+        |--------------------------------------------------------------------------
+        | Stock Adjustment
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource(
+            'stock-adjustments',
+            StockAdjustmentController::class
+        );
+
+
+
+
+    });    
+
+   
+
+    
+    Route::middleware('role:admin,pharmacist,cashier')->group(function () {
+       /*
+       |--------------------------------------------------------------------------
+       | Customers
+       |--------------------------------------------------------------------------
+       */
+   
+       Route::get('/customers', [CustomerController::class,'index'])
+           ->name('customers.index');
+   
+       Route::post('/customers', [CustomerController::class,'store'])
+           ->name('customers.store');
+   
+       Route::get('/customers/{id}/edit', [CustomerController::class,'edit'])
+           ->name('customers.edit');
+   
+       Route::put('/customers/{id}', [CustomerController::class,'update'])
+           ->name('customers.update');
+   
+       Route::delete('/customers/{id}', [CustomerController::class,'destroy'])
+           ->name('customers.destroy');
+
+        
+       
+        // Sales Returns
+        // Drafts
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sales
+        |--------------------------------------------------------------------------
+        */
+    
+        Route::get('/sales', [SaleController::class,'index'])
+            ->name('sales.index');
+    
+        Route::post('/sales/store', [SaleController::class,'store'])
+            ->name('sales.store');
+    
+        Route::get('/sales/history', [SaleController::class,'history'])
+            ->name('sales.history');
+    
+        Route::get('/sales/{sale}/receipt', [SaleController::class,'receipt'])
+            ->name('sales.receipt');
+    
+        Route::get('/sales/{sale}', [SaleController::class,'show'])
+            ->name('sales.show');
+    
+        Route::post('/sales/customerType', [SaleController::class,'customerType'])
+            ->name('sales.customerType');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sales Returns
+            |--------------------------------------------------------------------------
+            */
+        
+            Route::get(
+                '/sales-returns/sale/{sale}',
+                [SalesReturnController::class,'getSale']
+            )->name('sales-returns.sale');
+        
+        
+        
+            Route::resource(
+                'sales-returns',
+                SalesReturnController::class
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Sale Drafts
+                |--------------------------------------------------------------------------
+                */
+            
+                Route::prefix('drafts')->group(function () {
+            
+            
+                    Route::post('/new', [SaleDraftController::class,'create'])
+                        ->name('drafts.new');
+            
+            
+                    Route::get('/list', function () {
+            
+                        $drafts = \App\Models\SaleDraft::with('items')
+                            ->whereIn('status',['open','held'])
+                            ->latest()
+                            ->get();
+            
+                        return view(
+                            'sales.draft_list',
+                            compact('drafts')
+                        );
+            
+                    })->name('drafts.list');
+            
+            
+                    Route::get('/', [SaleDraftController::class,'index'])
+                        ->name('drafts.index');
+            
+            
+                    Route::post('/{draft}/add-item', [SaleDraftController::class,'addItem'])
+                        ->name('drafts.addItem');
+            
+            
+                    Route::delete('/items/{item}', [SaleDraftController::class,'removeItem'])
+                        ->name('drafts.removeItem');
+            
+            
+                    Route::get('/{draft}/print', [SaleDraftController::class,'printDraft'])
+                        ->name('drafts.print');
+            
+            
+                    Route::post('/{draft}/customer', [SaleDraftController::class,'updateCustomer'])
+                        ->name('drafts.customer');
+            
+            
+                    Route::get('/{draft}', [SaleDraftController::class,'show'])
+                        ->name('drafts.show');
+            
+            
+                    Route::delete('/{draft}', [SaleDraftController::class,'destroy'])
+                        ->name('drafts.destroy');
+            
+            
+                    Route::patch('/items/{item}/quantity', [SaleDraftController::class,'updateQuantity'])
+                        ->name('drafts.updateQuantity');
+            
+            
+                    Route::delete('/{draft}/clear', [SaleDraftController::class,'clear'])
+                        ->name('drafts.clear');
+            
+            
+                    Route::patch('/{draft}/hold', [SaleDraftController::class,'hold'])
+                        ->name('drafts.hold');
+            
+                });
+    });    
+
+
+
+
+
+
+   
+
+
+
+   
+
+
+
+    
+
+
+});
+
+ 
+/*
+|--------------------------------------------------------------------------
+| Breeze Authentication Routes
+|--------------------------------------------------------------------------
+*/
+
+require __DIR__.'/auth.php';

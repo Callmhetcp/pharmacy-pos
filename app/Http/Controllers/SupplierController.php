@@ -7,26 +7,51 @@ use App\Models\Supplier;
 
 class SupplierController extends Controller
 {
-    public function index(){
+   public function index(Request $request)
+{
+    $search = $request->search;
 
-        $suppliers = Supplier::all();
+    $suppliers = Supplier::when($search, function ($query) use ($search) {
 
-    return view('suppliers.index', compact('suppliers'));
+        $query->where('company', 'like', "%{$search}%")
+              ->orWhere('name', 'like', "%{$search}%")
+              ->orWhere('phone_number', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%");
+
+    })
+    ->latest()
+    ->paginate(20)
+    ->withQueryString();
+
+    // AJAX request
+    if ($request->ajax()) {
+
+        return view('suppliers.table', compact('suppliers'))->render();
 
     }
 
+    return view('suppliers.index', compact('suppliers', 'search'));
+}
     public function store(Request $request){
 
         $request->validate([
+            'company' => 'required|string|max:255',
             'name' => 'required|string|min:3|max:100',
-            'address' => 'required|string|min:5',
             'phone_number' => 'required|string|min:10|max:15',
+            'email' => 'nullable|email|max:255',
+            'address' => 'required|string|min:5',
+            'status'=> 'required|in:Active,Inactive',
+            'notes' => 'nullable|string',
+
         ]);
         $supplier = new Supplier();
-
+        $supplier->company = $request->company;
         $supplier->name = $request->name;
-        $supplier->address = $request->address;
         $supplier->phone_number = $request->phone_number;
+        $supplier->email = $request->email;
+        $supplier->address = $request->address;
+        $supplier->status = $request->status;
+        $supplier->notes = $request->notes;
 
         $supplier->save();
 
@@ -48,9 +73,25 @@ class SupplierController extends Controller
 
         $supplier = Supplier::find($id);
 
+        
+        $request->validate([
+            'company' => 'required|string|max:255',
+            'name' => 'required|string|min:3|max:100',
+            'phone_number' => 'required|string|min:10|max:15',
+            'email' => 'nullable|email|max:255',
+            'address' => 'required|string|min:5',
+            'status'=> 'required|in:Active,Inactive',
+            'notes' => 'nullable|string',
+
+        ]);
+
+        $supplier->company = $request->company;
         $supplier->name = $request->name;
-        $supplier->address = $request->address;
         $supplier->phone_number = $request->phone_number;
+        $supplier->email = $request->email;
+        $supplier->address = $request->address;
+        $supplier->status = $request->status;
+        $supplier->notes = $request->notes;
 
         $supplier->save();
 
