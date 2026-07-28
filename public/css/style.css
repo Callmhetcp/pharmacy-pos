@@ -492,3 +492,171 @@ html{
     font-size:.75rem;
 }
 
+/* ======================================
+   WORLD-CLASS PHARMACY PRELOADER
+====================================== */
+
+#preloader{
+    position:fixed;
+    inset:0;
+    background:linear-gradient(135deg,#ffffff,#f5f9ff);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:999999;
+    transition:opacity .5s ease,visibility .5s ease;
+}
+
+#preloader.hide{
+    opacity:0;
+    visibility:hidden;
+}
+
+.preloader-content{
+    text-align:center;
+    width:320px;
+}
+
+.preloader-logo{
+
+    width:95px;
+    height:95px;
+    object-fit:contain;
+
+    animation:
+        floatLogo 2.2s ease-in-out infinite,
+        glowLogo 2s ease-in-out infinite;
+}
+
+.preloader-title{
+
+    margin-top:20px;
+    font-size:28px;
+    font-weight:700;
+    color:#0d6efd;
+}
+
+.preloader-text{
+
+    color:#6c757d;
+    margin:10px 0 25px;
+    font-size:15px;
+    letter-spacing:.5px;
+}
+
+.loading-bar{
+
+    width:100%;
+    height:7px;
+
+    background:#e9ecef;
+
+    border-radius:100px;
+
+    overflow:hidden;
+}
+
+.loading-progress{
+
+    width:40%;
+
+    height:100%;
+
+    background:linear-gradient(
+        90deg,
+        #0d6efd,
+        #20c997,
+        #0d6efd
+    );
+
+    background-size:200%;
+
+    animation:
+        moveBar 1.6s linear infinite;
+}
+
+@keyframes moveBar{
+
+    0%{
+
+        margin-left:-40%;
+
+    }
+
+    100%{
+
+        margin-left:100%;
+
+    }
+
+}
+
+@keyframes floatLogo{
+
+    0%,100%{
+
+        transform:translateY(0);
+
+    }
+
+    50%{
+
+        transform:translateY(-8px);
+
+    }
+
+}
+
+@keyframes glowLogo{
+
+    0%,100%{
+
+        filter:drop-shadow(0 0 5px rgba(13,110,253,.25));
+
+    }
+
+    50%{
+
+        filter:drop-shadow(0 0 18px rgba(13,110,253,.55));
+
+    }
+
+}
+
+@media print {
+
+    .navbar,
+    .sidebar,
+    .btn,
+    .pagination,
+    footer {
+
+        display: none !important;
+
+    }
+
+    .card {
+
+        border: none !important;
+
+        box-shadow: none !important;
+
+    }
+
+    body {
+
+        background: white !important;
+
+    }
+
+    .container-fluid {
+
+        width: 100%;
+
+        margin: 0;
+
+        padding: 0;
+
+    }
+
+}

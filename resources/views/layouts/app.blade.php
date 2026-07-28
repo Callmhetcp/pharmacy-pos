@@ -7,7 +7,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Hypet Pharmacy Inventory</title>
+    <title> {{ $setting->pharmacy_name ?? 'Hypet Pharmacy' }}</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -23,6 +23,40 @@
 </head>
 
 <body class="bg-light">
+    <!-- Preloader -->
+
+<div id="preloader">
+    <div class="preloader-content">
+            @if($setting && $setting->logo)
+
+                    <img src="{{ asset('storage/' . $setting->logo) }}"
+                        width="45"
+                        height="45"
+                        class="me-2 rounded-circle">
+
+                @else
+
+                    <img src="{{ asset('images/pharm_logo.png') }}"
+                        width="45"
+                        height="45"
+                        class="me-2 rounded-circle">
+
+            @endif
+
+        <h3 class="preloader-title">
+            {{ $setting->pharmacy_name ?? 'Hypet Pharmacy' }}
+        </h3>
+
+        <p class="preloader-text">
+            Loading Pharmacy System...
+        </p>
+
+        <div class="loading-bar">
+            <div class="loading-progress"></div>
+        </div>
+
+    </div>
+</div>
 
 <nav class="navbar navbar-expand-lg navbar-dark shadow sticky-top"
      style="background:linear-gradient(90deg,#0d6efd,#0b5ed7);">
@@ -31,28 +65,40 @@
 
         {{-- ================= LOGO ================= --}}
 
-        <a class="navbar-brand d-flex align-items-center fw-bold"
-           href="#">
+       `<a class="navbar-brand d-flex align-items-center fw-bold"
+            href="#">
 
-            <img src="{{ asset('images/pharm_logo.png') }}"
-                 width="45"
-                 class="me-2">
+                @if($setting && $setting->logo)
 
-            <div>
+                    <img src="{{ asset('storage/' . $setting->logo) }}"
+                        width="45"
+                        height="45"
+                        class="me-2 rounded-circle">
 
-                <div class="fw-bold">
+                @else
 
-                    Hypet Pharmacy
+                    <img src="{{ asset('images/pharm_logo.png') }}"
+                        width="45"
+                        height="45"
+                        class="me-2 rounded-circle">
+
+                @endif
+
+                <div>
+
+                    <div class="fw-bold">
+
+                        {{ $setting->pharmacy_name ?? 'Hypet Pharmacy' }}
+
+                    </div>
+
+                    <small style="font-size:11px">
+
+                        Inventory Management System
+
+                    </small>
 
                 </div>
-
-                <small style="font-size:11px">
-
-                    Inventory Management System
-
-                </small>
-
-            </div>
 
         </a>
 
@@ -76,16 +122,49 @@
                 {{-- ========================================= --}}
 
                 
-                <li class="nav-item">
+               <li class="nav-item">
 
-                    <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
-                       href="{{ route('dashboard')  }}">
+                    @if(auth()->user()->role == 'admin')
 
-                        <i class="fas fa-chart-line me-1"></i>
+                        <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
+                        href="{{ route('dashboard') }}">
 
-                        Dashboard
+                            <i class="fas fa-chart-line me-1"></i>
+                            Dashboard
 
-                    </a>
+                        </a>
+
+                    @elseif(auth()->user()->role == 'cashier')
+
+                        <a class="nav-link {{ request()->routeIs('cashier.dashboard') ? 'active' : '' }}"
+                        href="{{ route('cashier.dashboard') }}">
+
+                            <i class="fas fa-chart-line me-1"></i>
+                            Dashboard
+
+                        </a>
+
+                    @elseif(auth()->user()->role == 'pharmacist')
+
+                        <a class="nav-link {{ request()->routeIs('pharmacist.dashboard') ? 'active' : '' }}"
+                        href="{{ route('pharmacist.dashboard') }}">
+
+                            <i class="fas fa-chart-line me-1"></i>
+                            Dashboard
+
+                        </a>
+
+                    @elseif(auth()->user()->role == 'storekeeper')
+
+                        <a class="nav-link {{ request()->routeIs('storekeeper.dashboard') ? 'active' : '' }}"
+                        href="{{ route('storekeeper.dashboard') }}">
+
+                            <i class="fas fa-chart-line me-1"></i>
+                            Dashboard
+
+                        </a>
+
+                    @endif
 
                 </li>
                
@@ -240,18 +319,31 @@
 
                         @endif
 
+                        @if(auth()->user()->role == 'admin')
+
                         <li>
 
-                            <a class="dropdown-item"
-                            href="#">
+                            <a class="dropdown-item {{ request()->routeIs('reports.*') ? 'active' : '' }}"
+                            href="{{ route('reports.index') }}">
 
-                                <i class="fas fa-cog me-2"></i>
+                                <i class="fas fa-chart-bar me-1"></i>
 
-                                Settings
+                                Reports
 
                             </a>
 
                         </li>
+
+                        @endif
+
+                       @if(auth()->user()->role == 'admin')
+                        <li >
+                            <a href="{{ route('settings.index') }}" class="dropdown-item">
+                                <i class="fas fa-cogs"></i>
+                                <span>Settings</span>
+                            </a>
+                        </li>
+                        @endif
 
                         <li>
                             <hr class="dropdown-divider">
@@ -487,70 +579,71 @@
 <!-- GLOBAL DELETE MODAL -->
 <!-- ========================= -->
 
-<script>
+    <script>
+        const successMessage = @json(session('success'));
+        const errorMessage = @json(session('error'));
 
-    
-@if(session('success'))
+        const validationErrors = @json($errors->all());
 
-Swal.fire({
+        window.addEventListener("load", function () {
 
-    icon: 'success',
+            const preloader = document.getElementById("preloader");
 
-    title: 'Success',
+            setTimeout(function () {
 
-    text: "{{ session('success') }}",
+                preloader.classList.add("hide");
 
-    timer: 2500,
-    
-    showConfirmButton: false
-    
-});
+                setTimeout(function () {
 
-@endif
+                    preloader.remove();
 
+                    // SUCCESS
+                    if(successMessage){
 
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: successMessage,
+                            timer: 2500,
+                            showConfirmButton: false
+                        });
 
-@if(session('error'))
+                    }
 
-Swal.fire({
-    
-    icon: 'error',
-    
-    title: 'Error',
-    
-    text: "{{ session('error') }}",
-    
-    confirmButtonColor: '#0d6efd'
-    
-});
+                    // ERROR
+                    if(errorMessage){
 
-@endif
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: errorMessage,
+                            confirmButtonColor: '#0d6efd'
+                        });
 
+                    }
 
+                    // VALIDATION
+                    if(validationErrors.length){
 
-@if($errors->any())
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Validation Error',
+                            html:
+                                "<ul style='text-align:left'>" +
+                                validationErrors.map(e => `<li>${e}</li>`).join("") +
+                                "</ul>",
+                            confirmButtonColor: '#0d6efd'
+                        });
 
-Swal.fire({
-    
-    icon: 'error',
-    
-    title: 'Validation Error',
-    
-    html: `
-    <ul style="text-align:left">
-        @foreach($errors->all() as $error)
-        
-        <li>{{ $error }}</li>
-        
-            @endforeach
-            </ul>
-            `,
-            
-            confirmButtonColor: '#0d6efd'
-            
+                    }
+
+                },500);
+
+            },1500);
+
         });
-        
-        @endif
+            
+
     </script>
 
 <!-- ========================= -->
@@ -577,12 +670,29 @@ Swal.fire({
 
 </script>
 
+<script>
+window.addEventListener("load", function () {
 
+    const preloader = document.getElementById("preloader");
 
+    // Keep the loader visible for at least 1 second
+    setTimeout(function () {
+
+        preloader.classList.add("hide");
+
+        setTimeout(function () {
+            preloader.remove();
+        }, 500);
+
+    }, 1500);
+
+});
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 @stack('scripts')
 
+@yield('scripts')
 </body>
 
 </html>

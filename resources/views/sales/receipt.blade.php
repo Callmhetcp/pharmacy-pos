@@ -94,16 +94,39 @@
 
     <div class="text-center">
 
-        {{-- Logo --}}
-        {{-- <img src="{{ asset('images/pharm_logo.png') }}" width="70"> --}}
+    @if($setting && $setting->logo)
 
-        <h3>HYPET PHARMACY</h3>
+        <img src="{{ asset('storage/' . $setting->logo) }}"
+             width="70"
+             class="mb-2">
 
-        <small>Port Harcourt, Rivers State</small><br>
+    @endif
 
-        <small>Tel: +234 XXX XXX XXXX</small>
+    <h3 class="mb-1">
 
-    </div>
+        {{ $setting->pharmacy_name ?? 'HYPET PHARMACY' }}
+
+    </h3>
+
+    @if(!empty($setting?->address))
+
+        <small>{{ $setting->address }}</small><br>
+
+    @endif
+
+    @if(!empty($setting?->phone))
+
+        <small>Tel: {{ $setting->phone }}</small><br>
+
+    @endif
+
+    @if(!empty($setting?->email))
+
+        <small>{{ $setting->email }}</small>
+
+    @endif
+
+</div>
 
     <hr>
 
@@ -190,64 +213,79 @@
     </table>
 
     <hr>
+<table>
 
-    <table>
+    <tr>
+        <td>Subtotal</td>
+        <td class="text-end">
+            ₦{{ number_format($sale->saleItems->sum('subtotal'), 2) }}
+        </td>
+    </tr>
 
-        <tr>
+    <tr>
+        <td>VAT ({{ $sale->vat_percent }}%)</td>
+        <td class="text-end">
+            ₦{{ number_format($sale->vat_amount, 2) }}
+        </td>
+    </tr>
 
-            <td>Payment</td>
+    <tr>
+        <td><strong>Grand Total</strong></td>
+        <td class="text-end">
+            <strong>₦{{ number_format($sale->total_amount, 2) }}</strong>
+        </td>
+    </tr>
 
-            <td class="text-end">{{ $sale->payment_method }}</td>
+    <tr>
+        <td>Payment Method</td>
+        <td class="text-end">
+            {{ ucfirst($sale->payment_method) }}
+        </td>
+    </tr>
 
-        </tr>
+    <tr>
+        <td>Amount Paid</td>
+        <td class="text-end">
+            ₦{{ number_format($sale->amount_paid, 2) }}
+        </td>
+    </tr>
 
-        <tr>
+    <tr>
+        <td>Change</td>
+        <td class="text-end">
+            ₦{{ number_format($sale->balance, 2) }}
+        </td>
+    </tr>
 
-            <td>Amount Paid</td>
+</table>
 
-            <td class="text-end">
-                ₦{{ number_format($sale->amount_paid,2) }}
-            </td>
+<hr>
 
-        </tr>
+<div class="d-flex justify-content-between grand-total">
 
-        <tr>
+    <span>TOTAL</span>
 
-            <td>Change</td>
+    <span>
+        ₦{{ number_format($sale->total_amount, 2) }}
+    </span>
 
-            <td class="text-end">
-                ₦{{ number_format($sale->balance,2) }}
-            </td>
-
-        </tr>
-
-    </table>
-
-    <hr>
-
-    <div class="d-flex justify-content-between grand-total">
-
-        <span>TOTAL</span>
-
-        <span>
-            ₦{{ number_format($sale->total_amount,2) }}
-        </span>
-
-    </div>
+</div>
 
     <hr>
 
     <div class="footer">
 
-        <strong>THANK YOU FOR YOUR PATRONAGE</strong>
+        @if(!empty($setting?->receipt_footer))
 
-        <br><br>
+            <hr>
 
-        Medicines sold are not returnable unless damaged or wrongly dispensed.
+            <div class="text-center">
 
-        <br><br>
+                <small>{{ $setting->receipt_footer }}</small>
 
-        Get Well Soon ❤️
+            </div>
+
+        @endif
 
     </div>
 

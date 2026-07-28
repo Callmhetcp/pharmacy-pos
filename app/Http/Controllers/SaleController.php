@@ -8,12 +8,75 @@ use App\Models\Sale;
 use App\Models\SaleDraft;
 use App\Models\SaleItem;
 use App\Models\StockMovement;
+use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 
 class SaleController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Helper Methods
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Current logged in user.
+     */
+    private function userId()
+    {
+        return Auth::id();
+    }
+
+    /**
+     * Get all drafts belonging to the current user.
+     */
+    private function draftList()
+    {
+        return SaleDraft::with([
+                'customer',
+                'items.medicine'
+            ])
+            ->where('user_id', $this->userId())
+            ->whereIn('status', ['open', 'held'])
+            ->latest()
+            ->get();
+    }
+
+    /**
+     * Get the user's current open draft.
+     * Create one automatically if none exists.
+     */
+    private function currentDraft()
+    {
+        $draft = SaleDraft::with([
+                'customer',
+                'items.medicine'
+            ])
+            ->where('user_id', $this->userId())
+            ->where('status', 'open','held')
+            ->latest()
+            ->first();
+
+        if (!$draft) {
+
+            $draft = SaleDraft::create([
+                'draft_number' => 'DRF-' . now()->format('YmdHis'),
+                'user_id'      => $this->userId(),
+                'status'       => 'open'
+            ]);
+
+            $draft->load([
+                'customer',
+                'items.medicine'
+            ]);
+        }
+
+        return $draft;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | New Sale Page
@@ -22,166 +85,202 @@ class SaleController extends Controller
 
     public function index()
     {
-        $customers = Customer::orderBy('name')->get();
+       $customers = Customer::where('status', 'Active')
+        ->orderBy('name')
+        ->get();
 
-        $medicines = Medicine::orderBy('name')->get();
+        $medicines = Medicine::select(
+                'id',
+                'name',
+                'selling_price',
+                'quantity'
+            )
+            ->orderBy('name')
+            ->get();
 
         $walkInCustomer = Customer::where(
             'name',
             'Walk-in Customer'
         )->first();
 
-        $drafts = SaleDraft::with([
-                'customer',
-                'items'
-            ])
-            ->where('status', 'open')
-            ->latest()
-            ->get();
+        $drafts = $this->draftList();
 
-        $currentDraft = SaleDraft::firstOrCreate(
-
-            [
-                'status' => 'open',
-                'user_id' => 1
-            ],
-
-            [
-                'draft_number' => 'DRF-' . now()->format('YmdHis')
-            ]
-
-        );
+        $currentDraft = $this->currentDraft();
 
         return view('sales.index', compact(
-
             'customers',
-
             'medicines',
-
             'walkInCustomer',
-
             'drafts',
-
             'currentDraft'
-
         ));
+    }
+        /*
+    |--------------------------------------------------------------------------
+    | Store Sale
+    |--------------------------------------------------------------------------
+    */
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'draft_id'        => 'required|exists:sale_drafts,id',
+            'customer_id'     => 'required|exists:customers,id',
+            'payment_method'  => 'required',
+            'amount_paid'     => 'required|numeric|min:0',
+        ]);
+
+        $draft = SaleDraft::with([
+                'customer',
+                'items.medicine'
+            ])
+            ->where('id', $request->draft_id)
+            ->where('user_id', $this->userId())
+            ->where('status', 'open','held')
+            ->first();
+
+        if (!$draft) {
+
+            return back()->with(
+                'error',
+                'The selected draft was not found.'
+            );
+
+        }
+
+        if ($draft->items->isEmpty()) {
+
+            return back()->with(
+                'error',
+                'The selected draft is empty.'
+            );
+
+        }
+
+       $subTotal = $draft->items->sum('subtotal');
+
+        $setting = Setting::first();
+
+        $vatRate = $setting?->tax ?? 0;
+
+        $vatAmount = ($subTotal * $vatRate) / 100;
+
+        $totalAmount = $subTotal + $vatAmount;
+
+        if ($request->amount_paid < $totalAmount) {
+
+            return back()->with(
+                'error',
+                'Amount paid is less than the sale total.'
+            );
+
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+           $sale = $this->createSale(
+                $request,
+                $vatRate,
+                $vatAmount,
+                $totalAmount
+            );
+
+            $this->processSaleItems(
+                $sale,
+                $draft
+            );
+
+            $draft->items()->delete();
+
+            $draft->update([
+                'status' => 'completed'
+            ]);
+
+            $this->currentDraft();
+
+            DB::commit();
+
+            return redirect()
+                ->route('sales.receipt', $sale)
+                ->with(
+                    'success',
+                    'Sale completed successfully.'
+                );
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return back()->with(
+                'error',
+                $e->getMessage()
+            );
+
+        }
     }
 
     /*
-|--------------------------------------------------------------------------
-| Store Sale
-|--------------------------------------------------------------------------
-*/
+    |--------------------------------------------------------------------------
+    | Create Sale
+    |--------------------------------------------------------------------------
+    */
 
-public function store(Request $request)
+private function createSale(
+    Request $request,
+    $vatRate,
+    $vatAmount,
+    $totalAmount
+)
 {
-    $request->validate([
+    return Sale::create([
 
-        'draft_id' => 'required|exists:sale_drafts,id',
+        'receipt_number' => $this->generateReceiptNumber(),
 
-        'customer_id' => 'required|exists:customers,id',
+        'customer_id' => $request->customer_id,
 
-        'payment_method' => 'required',
+        'user_id' => $this->userId(),
 
-        'amount_paid' => 'required|numeric|min:0',
+        'sale_date' => now(),
+
+        'vat_percent' => $vatRate,
+
+        'vat_amount' => $vatAmount,
+
+        'total_amount' => $totalAmount,
+
+        'amount_paid' => $request->amount_paid,
+
+        'balance' => $request->amount_paid - $totalAmount,
+
+        'payment_method' => $request->payment_method,
 
     ]);
+}
 
-    $draft = SaleDraft::with([
-            'customer',
-            'items.medicine'
-        ])
-        ->where('id', $request->draft_id)
-        ->where('user_id', 1)
-        ->where('status', 'open')
-        ->first();
+    /*
+    |--------------------------------------------------------------------------
+    | Generate Receipt Number
+    |--------------------------------------------------------------------------
+    */
 
-    if (!$draft) {
-
-        return back()->with(
-            'error',
-            'Selected draft was not found.'
-        );
-
-    }
-
-    if ($draft->items->isEmpty()) {
-
-        return back()->with(
-            'error',
-            'The selected draft is empty.'
-        );
-
-    }
-
-    $totalAmount = $draft->items->sum('subtotal');
-
-    if ($request->amount_paid < $totalAmount) {
-
-        return back()->with(
-            'error',
-            'Amount paid is less than the total sale amount.'
-        );
-
-    }
-
-    $sale = null;
-
-    DB::transaction(function () use (
-        $request,
-        $draft,
-        $totalAmount,
-        &$sale
-    ) {
-
-        /*
-        |--------------------------------------------------------------------------
-        | Generate Receipt Number
-        |--------------------------------------------------------------------------
-        */
-
-        $receiptNumber = 'PHM'
-            . now()->format('Ymd')
+    private function generateReceiptNumber()
+    {
+        return 'PHM'
+            . now()->format('YmdHis')
             . '-'
-            . str_pad(
-                Sale::count() + 1,
-                5,
-                '0',
-                STR_PAD_LEFT
-            );
+            . strtoupper(substr(uniqid(), -5));
+    }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Create Sale
-        |--------------------------------------------------------------------------
-        */
+    /*
+    |--------------------------------------------------------------------------
+    | Process Sale Items
+    |--------------------------------------------------------------------------
+    */
 
-        $sale = Sale::create([
-
-            'receipt_number' => $receiptNumber,
-
-            'customer_id' => $request->customer_id,
-
-            'user_id' => 1,
-
-            'sale_date' => now(),
-
-            'total_amount' => $totalAmount,
-
-            'amount_paid' => $request->amount_paid,
-
-            'balance' => $request->amount_paid - $totalAmount,
-
-            'payment_method' => $request->payment_method,
-
-        ]);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Save Sale Items
-        |--------------------------------------------------------------------------
-        */
-
+    private function processSaleItems(Sale $sale, SaleDraft $draft)
+    {
         foreach ($draft->items as $item) {
 
             $medicine = $item->medicine;
@@ -208,12 +307,6 @@ public function store(Request $request)
 
             ]);
 
-            /*
-            |--------------------------------------------------------------------------
-            | Reduce Stock
-            |--------------------------------------------------------------------------
-            */
-
             $medicine->decrement(
                 'quantity',
                 $item->quantity
@@ -221,17 +314,11 @@ public function store(Request $request)
 
             $medicine->refresh();
 
-            /*
-            |--------------------------------------------------------------------------
-            | Record Stock Movement
-            |--------------------------------------------------------------------------
-            */
-
             StockMovement::create([
 
                 'medicine_id' => $medicine->id,
 
-                'reference_number' => $receiptNumber,
+                'reference_number' => $sale->receipt_number,
 
                 'type' => StockMovement::TYPE_SALE,
 
@@ -241,194 +328,131 @@ public function store(Request $request)
 
                 'balance' => $medicine->quantity,
 
-                'user_id' => 1,
+                'user_id' => $this->userId(),
 
             ]);
-
         }
-
+    }
         /*
-        |--------------------------------------------------------------------------
-        | Complete Draft
-        |--------------------------------------------------------------------------
-        */
+    |--------------------------------------------------------------------------
+    | Print Receipt
+    |--------------------------------------------------------------------------
+    */
 
-        $draft->items()->delete();
-
-        $draft->update([
-
-            'status' => 'completed',
-
+    public function receipt(Sale $sale)
+    {
+        $sale->load([
+            'customer',
+            'user',
+            'saleItems.medicine'
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Create New Draft
-        |--------------------------------------------------------------------------
-        */
+        return view(
+            'sales.receipt',
+            compact('sale')
+        );
+    }
 
-        SaleDraft::create([
+    /*
+    |--------------------------------------------------------------------------
+    | Sales History
+    |--------------------------------------------------------------------------
+    */
 
-            'draft_number' => 'DRF-'
-                . now()->format('YmdHis'),
+    public function history(Request $request)
+    {
+        $search = $request->search;
 
-            'user_id' => 1,
+        $sales = Sale::with([
+                'customer',
+                'user'
+            ])
+            ->when($search, function ($query) use ($search) {
 
-            'status' => 'open',
+                $query->where(function ($q) use ($search) {
 
-        ]);
-
-    });
-
-    if (!$sale) {
-    return back()->with('error', 'Sale could not be completed.');
-}
-
-return redirect()
-    ->route('sales.receipt', $sale->id)
-    ->with('success', 'Sale completed successfully.');
-
-    
-}
-
-/*
-|--------------------------------------------------------------------------
-| Print Receipt
-|--------------------------------------------------------------------------
-*/
-
-public function receipt($id)
-{
-    $sale = Sale::with([
-
-        'customer',
-
-        'user',
-
-        'saleItems.medicine'
-
-    ])->findOrFail($id);
-
-    return view(
-
-        'sales.receipt',
-
-        compact('sale')
-
-    );
-}
-/*
-|--------------------------------------------------------------------------
-| Sales History
-|--------------------------------------------------------------------------
-*/
-
-public function history(Request $request)
-{
-    $search = $request->search;
-
-    $sales = Sale::when($search, function ($query) use ($search) {
-
-            $query->where(
-                    'receipt_number',
-                    'like',
-                    "%{$search}%"
-                )
-
-                ->orWhere(
-                    'payment_method',
-                    'like',
-                    "%{$search}%"
-                )
-
-                ->orWhereHas('customer', function ($customer) use ($search) {
-
-                    $customer->where(
-                        'name',
+                    $q->where(
+                        'receipt_number',
                         'like',
                         "%{$search}%"
-                    );
+                    )
+                    ->orWhere(
+                        'payment_method',
+                        'like',
+                        "%{$search}%"
+                    )
+                    ->orWhereHas('customer', function ($customer) use ($search) {
+
+                        $customer->where(
+                            'name',
+                            'like',
+                            "%{$search}%"
+                        );
+
+                    });
 
                 });
 
-        })
+            })
+            ->latest()
+            ->paginate(20);
 
-        ->latest()
+        return view(
+            'sales.history',
+            compact('sales')
+        );
+    }
 
-        ->paginate(20);
+    /*
+    |--------------------------------------------------------------------------
+    | Sale Details
+    |--------------------------------------------------------------------------
+    */
 
-    return view(
+    public function show(Sale $sale)
+    {
+        $sale->load([
+            'customer',
+            'user',
+            'saleItems.medicine'
+        ]);
 
-        'sales.history',
+        return view(
+            'sales.show',
+            compact('sale')
+        );
+    }
 
-        compact('sales')
+    /*
+    |--------------------------------------------------------------------------
+    | Walk-in Customer
+    |--------------------------------------------------------------------------
+    */
 
-    );
-}
+    public function customerType(Request $request)
+    {
+        if ($request->has('walkin')) {
 
-/*
-|--------------------------------------------------------------------------
-| Sale Details
-|--------------------------------------------------------------------------
-*/
+            $walkInCustomer = Customer::where(
+                'name',
+                'Walk-in Customer'
+            )->first();
 
-public function show(Sale $sale)
-{
-    $sale->load([
+            if ($walkInCustomer) {
 
-        'customer',
+                Session::put(
+                    'customer_id',
+                    $walkInCustomer->id
+                );
 
-        'user',
+            }
 
-        'saleItems.medicine'
+        } else {
 
-    ]);
-
-    return view(
-
-        'sales.show',
-
-        compact('sale')
-
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| Walk-in Customer
-|--------------------------------------------------------------------------
-*/
-
-public function customerType(Request $request)
-{
-    if ($request->has('walkin')) {
-
-        $walkInCustomer = Customer::where(
-
-            'name',
-
-            'Walk-in Customer'
-
-        )->first();
-
-        if ($walkInCustomer) {
-
-            Session::put(
-
-                'customer_id',
-
-                $walkInCustomer->id
-
-            );
+            Session::forget('customer_id');
 
         }
 
-    } else {
-
-        Session::forget('customer_id');
-
+        return back();
     }
-
-    return back();
-}
 }

@@ -181,29 +181,34 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener("click", function(e){
 
-    const search = document.getElementById('search');
+    const button = e.target.closest(".status-btn");
 
-    search.addEventListener('keyup', function () {
+    if(!button) return;
 
-        fetch("{{ route('customers.index') }}?search=" + encodeURIComponent(this.value), {
 
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+    Swal.fire({
 
-        })
+        title: "Are you sure?",
 
-        .then(response => response.text())
+        text: button.dataset.message,
 
-        .then(html => {
+        icon: "warning",
 
-            document.getElementById('tableBody').innerHTML = html;
+        showCancelButton: true,
 
-        })
+        confirmButtonText: "Yes, continue",
 
-        .catch(error => console.error(error));
+        cancelButtonText: "Cancel"
+
+    }).then((result)=>{
+
+        if(result.isConfirmed){
+
+            button.closest("form").submit();
+
+        }
 
     });
 

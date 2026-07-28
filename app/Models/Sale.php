@@ -10,6 +10,8 @@ class Sale extends Model
         'receipt_number',
         'customer_id',
         'user_id',
+        'vat_percent',
+        'vat_amount',
         'total_amount',
         'sale_date',
         'amount_paid',

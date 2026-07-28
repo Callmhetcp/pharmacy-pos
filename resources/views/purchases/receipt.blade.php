@@ -71,26 +71,39 @@ td{
 
     <div class="text-center">
 
-        {{-- Logo --}}
-        {{-- <img src="{{ asset('images/pharm_logo.png') }}" width="60"> --}}
+    @if($setting && $setting->logo)
 
-        <h4>HYPET PHARMACY</h4>
+        <img src="{{ asset('storage/' . $setting->logo) }}"
+             width="70"
+             class="mb-2">
 
-        <small>
-            Port Harcourt, Rivers State
-        </small>
+    @endif
 
-        <br>
+    <h3 class="mb-1">
 
-        <small>
-            Tel: 0800-000-0000
-        </small>
+        {{ $setting->pharmacy_name ?? 'HYPET PHARMACY' }}
 
-        <hr>
+    </h3>
 
-        <strong>PURCHASE RECEIPT</strong>
+    @if(!empty($setting?->address))
 
-    </div>
+        <small>{{ $setting->address }}</small><br>
+
+    @endif
+
+    @if(!empty($setting?->phone))
+
+        <small>Tel: {{ $setting->phone }}</small><br>
+
+    @endif
+
+    @if(!empty($setting?->email))
+
+        <small>{{ $setting->email }}</small>
+
+    @endif
+
+</div>
 
     <br>
 
@@ -214,15 +227,41 @@ td{
 
     <div class="text-center">
 
-        <small>
+        <div class="text-center">
 
-            Goods received in good condition.
+    @if($setting && $setting->logo)
 
-            <br>
+        <img src="{{ asset('storage/' . $setting->logo) }}"
+             width="70"
+             class="mb-2">
 
-            Thank you.
+    @endif
 
-        </small>
+    <h3 class="mb-1">
+
+        {{ $setting->pharmacy_name ?? 'HYPET PHARMACY' }}
+
+    </h3>
+
+    @if(!empty($setting?->address))
+
+        <small>{{ $setting->address }}</small><br>
+
+    @endif
+
+    @if(!empty($setting?->phone))
+
+        <small>Tel: {{ $setting->phone }}</small><br>
+
+    @endif
+
+    @if(!empty($setting?->email))
+
+        <small>{{ $setting->email }}</small>
+
+    @endif
+
+</div>
 
     </div>
 

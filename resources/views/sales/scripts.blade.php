@@ -144,72 +144,67 @@ if(form){
 // ===============================
 // REMOVE ITEM FROM DRAFT
 // ===============================
-
-
-document.addEventListener("click", function(e){
-
-
+document.addEventListener("click", function (e) {
 
     const button = e.target.closest(".remove-item");
 
+    if (!button) return;
 
+    const itemId = button.dataset.id;
 
-    if(!button) return;
+    Swal.fire({
+        title: "Remove medicine?",
+        text: "This item will be removed from the draft.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, remove it",
+        cancelButtonText: "Cancel"
+    }).then((result) => {
 
+        if (!result.isConfirmed) return;
 
+        fetch(`/drafts/items/${itemId}`, {
+            method: "DELETE",
+            headers: {
+                "X-CSRF-TOKEN":
+                    document.querySelector('meta[name="csrf-token"]').content,
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
 
-    if(!confirm("Remove this medicine?")) return;
+            updateDraftTable(data.items);
+            updateOrderSummary(data.items);
 
+            if (data.drafts) {
+                updateDraftList(data.drafts);
+            }
 
+            Swal.fire({
+                icon: "success",
+                title: "Removed!",
+                text: "Medicine removed from the draft.",
+                timer: 1500,
+                showConfirmButton: false
+            });
 
-    let itemId = button.dataset.id;
+        })
+        .catch(error => {
+            console.error(error);
 
-
-
-    fetch(`/drafts/items/${itemId}`,{
-
-
-        method:"DELETE",
-
-
-        headers:{
-
-
-            "X-CSRF-TOKEN":
-            document.querySelector('meta[name="csrf-token"]').content,
-
-
-            "X-Requested-With":"XMLHttpRequest"
-
-
-        }
-
-
-    })
-
-
-    .then(response=>response.json())
-
-
-  .then(data=>{
-
-    updateDraftTable(data.items);
-    updateOrderSummary(data.items);
-
-    if(data.drafts){
-        updateDraftList(data.drafts);
-    }
-
-
-
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: "Unable to remove the medicine."
+            });
+        });
 
     });
 
-
-
 });
-
-
 
 
 
@@ -460,38 +455,68 @@ function updateDraftTable(items){
 
 
 }
-
 // ===============================
 // UPDATE ORDER SUMMARY
 // ===============================
 
-function updateOrderSummary(items){
+function updateOrderSummary(items) {
 
     let totalItems = items.length;
     let totalQuantity = 0;
     let subtotal = 0;
 
     items.forEach(item => {
+
         totalQuantity += Number(item.quantity);
         subtotal += Number(item.subtotal);
+
     });
 
+    // VAT Percentage from Settings
+    const vatRate = {{ $setting->tax ?? 0 }};
+
+    // Discount (for now)
+    let discount = 0;
+
+    // VAT Amount
+    let tax = ((subtotal - discount) * vatRate) / 100;
+
+    // Grand Total
+    let grandTotal = (subtotal - discount) + tax;
+
+    // Update Order Summary
     document.getElementById("totalItems").textContent = totalItems;
+
     document.getElementById("totalQuantity").textContent = totalQuantity;
+
     document.getElementById("subTotal").textContent =
-        subtotal.toLocaleString(undefined,{
-            minimumFractionDigits:2,
-            maximumFractionDigits:2
+        subtotal.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         });
 
-    document.getElementById("discount").textContent = "0.00";
-    document.getElementById("tax").textContent = "0.00";
+    document.getElementById("discount").textContent =
+        discount.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+    document.getElementById("tax").textContent =
+        tax.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
 
     document.getElementById("grandTotal").textContent =
-        "₦" + subtotal.toLocaleString(undefined,{
-            minimumFractionDigits:2,
-            maximumFractionDigits:2
+        "₦" + grandTotal.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         });
+
+    // Refresh payment calculation
+    if (window.calculatePayment) {
+        window.calculatePayment();
+    }
 
 }
 
@@ -1244,39 +1269,114 @@ document.addEventListener("click", function(e){
 });
 
 // ===============================
-// CLEAR CURRENT DRAFT
+// CLEAR DRAFT
 // ===============================
-
-document.addEventListener("click", function(e){
+document.addEventListener("click", function (e) {
 
     const button = e.target.closest("#clearDraft");
 
-    if(!button) return;
+    if (!button) return;
 
-    if(!currentDraftId){
+    if (!currentDraftId) {
 
-        alert("Please select a draft first.");
-
-        return;
-
-    }
-
-    if(!confirm("Clear all medicines from this draft?")){
+        Swal.fire({
+            icon: "warning",
+            title: "No Draft Selected",
+            text: "Please select a draft first."
+        });
 
         return;
-
     }
 
-    fetch(`/drafts/${currentDraftId}/clear`,{
+    Swal.fire({
+        title: "Clear Draft?",
+        text: "This will remove all medicines from this draft.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, Clear It",
+        cancelButtonText: "Cancel"
+    }).then((result) => {
 
-        method:"DELETE",
+        if (!result.isConfirmed) return;
 
-        headers:{
+        fetch(`/drafts/${currentDraftId}/clear`, {
 
-            "X-CSRF-TOKEN":
-            document.querySelector('meta[name="csrf-token"]').content,
+            method: "DELETE",
 
-            "X-Requested-With":"XMLHttpRequest"
+            headers: {
+
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+
+                "X-Requested-With": "XMLHttpRequest"
+
+            }
+
+        })
+
+        .then(response => response.json())
+
+        .then(data => {
+
+            updateDraftTable([]);
+            updateDraftList(data.drafts);
+            updateOrderSummary([]);
+
+            Swal.fire({
+                icon: "success",
+                title: "Cleared!",
+                text: "Draft cleared successfully.",
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+        })
+
+        .catch(error => {
+            console.log(error);
+
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: "Unable to clear draft."
+            });
+        });
+
+    });
+
+});
+
+
+// ===============================
+// HOLD DRAFT
+// ===============================
+document.addEventListener("click", function (e) {
+
+    const button = e.target.closest("#holdDraft");
+
+    if (!button) return;
+
+    if (!currentDraftId) {
+
+        Swal.fire({
+            icon: "warning",
+            title: "No Draft Selected",
+            text: "Please select a draft first."
+        });
+
+        return;
+    }
+
+    fetch(`/drafts/${currentDraftId}/hold`, {
+
+        method: "PATCH",
+
+        headers: {
+
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+
+            "X-Requested-With": "XMLHttpRequest"
 
         }
 
@@ -1286,78 +1386,61 @@ document.addEventListener("click", function(e){
 
     .then(data => {
 
-        updateDraftTable([]);
+        console.log(data);
 
         updateDraftList(data.drafts);
 
-        updateOrderSummary([]);
+        Swal.fire({
+            icon: "success",
+            title: "Draft Held",
+            text: "The draft has been placed on hold.",
+            timer: 1500,
+            showConfirmButton: false
+        });
+
+        if (data.active) {
+
+            currentDraftId = data.active.id;
+
+            document.getElementById("checkoutDraftId").value = currentDraftId;
+
+            fetch(`/drafts/${currentDraftId}`)
+
+            .then(response => response.json())
+
+            .then(draftData => {
+
+                updateDraftTable(draftData.items);
+
+                updateOrderSummary(draftData.items);
+
+                if (draftData.draft.customer_id) {
+
+                    document.getElementById("customerSelect").value = draftData.draft.customer_id;
+
+                } else {
+
+                    document.getElementById("customerSelect").value = "";
+
+                }
+
+            });
+
+        }
 
     })
 
-    .catch(error => console.log(error));
+    .catch(error => {
 
-});
+        console.log(error);
 
-document.addEventListener("click", function(e){
-
-    const button = e.target.closest("#holdDraft");
-
-    if(!button) return;
-
-    if(!currentDraftId){
-
-        alert("Select a draft first.");
-
-        return;
-
-    }
-
-   fetch(`/drafts/${currentDraftId}/hold`,{
-
-    method:"PATCH",
-
-    headers:{
-        "X-CSRF-TOKEN":
-        document.querySelector('meta[name="csrf-token"]').content,
-        "X-Requested-With":"XMLHttpRequest"
-    }
-
-})
-
-.then(response => response.json())
-
-.then(data => {
-
-    console.log(data);
-
-    updateDraftList(data.drafts);
-
-    if(data.active){
-
-        currentDraftId = data.active.id;
-
-        document.getElementById("checkoutDraftId").value = currentDraftId;
-
-        fetch(`/drafts/${currentDraftId}`)
-        .then(response => response.json())
-        .then(draftData => {
-
-            updateDraftTable(draftData.items);
-            updateOrderSummary(draftData.items);
-
-            if(draftData.draft.customer_id){
-                document.getElementById("customerSelect").value =
-                    draftData.draft.customer_id;
-            }else{
-                document.getElementById("customerSelect").value = "";
-            }
-
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Unable to hold draft."
         });
 
-    }
+    });
 
-})
-
-.catch(error => console.log(error));
 });
 </script>

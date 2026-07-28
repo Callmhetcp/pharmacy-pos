@@ -7,28 +7,62 @@ use App\Models\Medicine;
 use App\Models\SaleDraft;
 use App\Models\SaleDraftItem;
 use App\Models\Customer;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
 
 class SaleDraftController extends Controller
 {
+
+ /*
+    |--------------------------------------------------------------------------
+    | Helper Methods
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Current logged in user.
+     */
+    private function userId()
+    {
+        return Auth::id();
+    }
+
+    /**
+     * Get all drafts belonging to the current user.
+     */
+    private function draftList()
+{
+    return SaleDraft::with([
+            'customer',
+            'items.medicine'
+        ])
+        ->where('user_id', $this->userId())
+        ->whereIn('status', ['open', 'held'])
+        ->orderByRaw("
+            CASE
+                WHEN status = 'held' THEN 1
+                WHEN status = 'open' THEN 2
+            END
+        ")
+        ->latest()
+        ->get();
+}
+
    public function create()
 {
     $draft = SaleDraft::create([
 
         'draft_number' => 'DRF-' . now()->format('YmdHis'),
 
-        'user_id' => 1,
+        'user_id' => $this->userId(),
 
         'status' => 'open'
 
     ]);
 
 
-    $drafts = SaleDraft::with('items')
-        ->where('status', 'open')
-        ->latest()
-        ->get();
+   $drafts = $this->draftList();
 
 
     return response()->json([
@@ -54,26 +88,14 @@ class SaleDraftController extends Controller
 
 
     // Load both open and held drafts
-    $drafts = SaleDraft::with([
-            'customer',
-            'items.medicine'
-        ])
-        ->whereIn('status', ['open', 'held'])
-        ->orderByRaw("
-            CASE
-                WHEN status='held' THEN 1
-                WHEN status='open' THEN 2
-            END
-        ")
-        ->latest()
-        ->get();
+   $drafts = $this->draftList();
 
 
 
     // Find current open draft
     $currentDraft = SaleDraft::with('items.medicine')
         ->where('status', 'open')
-        ->where('user_id', 1)
+        ->where('user_id',$this->userId() )
         ->latest()
         ->first();
 
@@ -86,7 +108,7 @@ class SaleDraftController extends Controller
 
             'draft_number' => 'DRF-' . now()->format('YmdHis'),
 
-            'user_id' => 1,
+            'user_id' => $this->userId(),
 
             'status' => 'open'
 
@@ -118,6 +140,14 @@ class SaleDraftController extends Controller
 }
 public function addItem(Request $request, SaleDraft $draft)
 {
+    if ($draft->user_id != $this->userId()) {
+        abort(403);
+    }
+    if ($draft->status === 'held') {
+    $draft->update([
+        'status' => 'open'
+    ]);
+}
     $request->validate([
         'medicine_id' => 'required|exists:medicines,id',
         'quantity'    => 'required|integer|min:1',
@@ -159,11 +189,7 @@ public function addItem(Request $request, SaleDraft $draft)
 
 
     // Reload relationships so the counts are updated
-    $drafts = SaleDraft::with('items.medicine')
-    ->where('status','open')
-    ->latest()
-    ->get();
-
+   $drafts = $this->draftList();
 
     return response()->json([
 
@@ -180,16 +206,23 @@ public function addItem(Request $request, SaleDraft $draft)
 
 public function removeItem(SaleDraftItem $item)
 {
+    if ($item->draft->user_id != $this->userId()) {
+        abort(403);
+    }
+
     $draft = $item->draft;
+
+    if ($draft->status === 'held') {
+    $draft->update([
+        'status' => 'open'
+    ]);
+}
 
     $item->delete();
 
     $draft->load('items.medicine');
 
-    $drafts = SaleDraft::with('items')
-        ->where('status', 'open')
-        ->latest()
-        ->get();
+    $drafts = $this->draftList();
 
     return response()->json([
         'success' => true,
@@ -202,15 +235,12 @@ public function removeItem(SaleDraftItem $item)
 
 public function show(SaleDraft $draft)
 {
+    if ($draft->user_id != $this->userId()) {
+            abort(403);
+        }
 
     // If the draft was held, reopen it
-    if($draft->status === 'held'){
-
-        $draft->update([
-            'status'=>'open'
-        ]);
-
-    }
+   
 
 
     $draft->load([
@@ -233,6 +263,9 @@ public function show(SaleDraft $draft)
 }
 public function destroy(SaleDraft $draft)
 {
+    if ($draft->user_id != $this->userId()) {
+        abort(403);
+    }
     // Delete all items
     $draft->items()->delete();
 
@@ -240,10 +273,7 @@ public function destroy(SaleDraft $draft)
     $draft->delete();
 
     // Get remaining drafts
-    $drafts = SaleDraft::with('items')
-        ->where('status', 'open')
-        ->latest()
-        ->get();
+    $drafts = $this->draftList();
 
     return response()->json([
         'success' => true,
@@ -252,6 +282,11 @@ public function destroy(SaleDraft $draft)
 }
 public function updateCustomer(Request $request, SaleDraft $draft)
 {
+    if ($draft->user_id != $this->userId()) {
+        abort(403);
+    }
+
+    
     $request->validate([
         'customer_id' => 'required|exists:customers,id'
     ]);
@@ -275,16 +310,30 @@ public function updateCustomer(Request $request, SaleDraft $draft)
 
 public function printDraft($id)
 {
-    $draft = SaleDraft::with([
+  
+   $draft = SaleDraft::with([
         'customer',
         'items.medicine'
-    ])->findOrFail($id);
+    ])
+    ->where('user_id', $this->userId())
+    ->findOrFail($id);
+
+    if ($draft->status === 'held') {
+    return response()->json([
+        'success' => false,
+        'message' => 'Resume the sale before printing.'
+    ], 403);
+}
 
     return view('sales.draft_receipt', compact('draft'));
 }
 
 public function updateQuantity(Request $request, SaleDraftItem $item)
 {
+    if ($item->draft->user_id != $this->userId()) {
+        abort(403);
+    }
+
     $request->validate([
         'action' => 'required|in:increase,decrease',
     ]);
@@ -305,22 +354,26 @@ public function updateQuantity(Request $request, SaleDraftItem $item)
         $item->quantity--;
 
         if ($item->quantity <= 0) {
+
             $draft = $item->draft;
+
+            if ($draft->status === 'held') {
+                $draft->update([
+                    'status' => 'open'
+                ]);
+            }
 
             $item->delete();
 
             $draft->load('items.medicine');
 
-            $drafts = SaleDraft::with('items')
-                ->where('status', 'open')
-                ->latest()
-                ->get();
+            $drafts = $this->draftList();
 
             return response()->json([
                 'success' => true,
-                'items' => $draft->items,
-                'drafts' => $drafts,
-                'total' => $draft->items->sum('subtotal')
+                'items'   => $draft->items,
+                'drafts'  => $drafts,
+                'total'   => $draft->items->sum('subtotal')
             ]);
         }
     }
@@ -329,53 +382,57 @@ public function updateQuantity(Request $request, SaleDraftItem $item)
     $item->save();
 
     $draft = $item->draft;
+
+    
     $draft->load('items.medicine');
 
-    $drafts = SaleDraft::with('items')
-        ->where('status', 'open')
-        ->latest()
-        ->get();
+    $drafts = $this->draftList();
 
     return response()->json([
         'success' => true,
-        'items' => $draft->items,
-        'drafts' => $drafts,
-        'total' => $draft->items->sum('subtotal')
+        'items'   => $draft->items,
+        'drafts'  => $drafts,
+        'total'   => $draft->items->sum('subtotal')
     ]);
 }
 
 public function clear(SaleDraft $draft)
 {
+    if ($draft->user_id != $this->userId()) {
+        abort(403);
+    }
+    if ($draft->status === 'held') {
+    $draft->update([
+        'status' => 'open'
+    ]);
+}
+
     $draft->items()->delete();
 
     $draft->load('items.medicine');
 
-    $drafts = SaleDraft::with('items')
-        ->where('status', 'open')
-        ->latest()
-        ->get();
+    $drafts = $this->draftList();
 
     return response()->json([
-
         'success' => true,
-
-        'items' => [],
-
-        'total' => 0,
-
-        'drafts' => $drafts
-
+        'items'   => [],
+        'total'   => 0,
+        'drafts'  => $drafts
     ]);
 }
 
 public function hold(SaleDraft $draft)
 {
+    if ($draft->user_id != $this->userId()) {
+        abort(403);
+    }
     $draft->update([
         'status' => 'held'
     ]);
 
     // Find another open draft
     $active = SaleDraft::with('items', 'customer')
+         ->where('user_id', $this->userId())
         ->where('status', 'open')
         ->latest()
         ->first();
@@ -385,7 +442,7 @@ public function hold(SaleDraft $draft)
 
         $active = SaleDraft::create([
             'draft_number' => 'DRF-' . now()->format('YmdHis'),
-            'user_id' => 1,
+            'user_id' => $this->userId(),
             'status' => 'open'
         ]);
 
@@ -393,10 +450,7 @@ public function hold(SaleDraft $draft)
         $active->load('items', 'customer');
     }
 
-    $drafts = SaleDraft::with('items', 'customer')
-        ->whereIn('status', ['open','held'])
-        ->latest()
-        ->get();
+    $drafts = $this->draftList();
 
     return response()->json([
         'success' => true,

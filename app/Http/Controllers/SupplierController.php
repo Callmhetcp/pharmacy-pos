@@ -100,14 +100,24 @@ class SupplierController extends Controller
 
     }
 
-    public function destroy($id){
+    public function destroy(Supplier $supplier)
+{
+     
+    $supplier->update([
+        'status' => 'Inactive'
+    ]);
 
-    $supplier = Supplier::find($id);
+    return redirect()->back()
+        ->with('success', 'Supplier marked as inactive successfully.');
+}
 
-    $supplier->delete();
+public function activate(Supplier $supplier)
+{
+    $supplier->update([
+        'status' => 'Active'
+    ]);
 
-    return redirect('/suppliers')
-        ->with('success','Supplier has been deleted successfully.');
-
-    }
+    return redirect()->back()
+        ->with('success', 'Supplier activated successfully.');
+}
 }

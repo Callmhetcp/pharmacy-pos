@@ -41,24 +41,36 @@
 
                                             </a>
 
-                                            <form
-                                                action="{{ route('customers.destroy', $customer->id) }}"
-                                                method="POST"
-                                                class="d-inline">
+                                           <form action="{{ route('customers.toggleStatus', $customer->id) }}" method="POST" class="d-inline customer-status-form">
 
-                                                @csrf
-                                                @method('DELETE')
+                                            @csrf
+                                            @method('PATCH')
 
-                                                <button
-                                                    type="submit"
-                                                    class="btn btn-danger btn-sm delete-btn">
+                                            @if($customer->status == 'Active')
 
-                                                    <i class="fas fa-trash"></i>
+                                                <button 
+                                                    type="button"
+                                                    class="btn btn-danger btn-sm status-btn"
+                                                    data-message="Deactivate this customer?">
+
+                                                    <i class="fas fa-user-slash"></i>
 
                                                 </button>
 
-                                            </form>
+                                            @else
 
+                                                <button 
+                                                    type="button"
+                                                    class="btn btn-success btn-sm status-btn"
+                                                    data-message="Activate this customer?">
+
+                                                    <i class="fas fa-user-check"></i>
+
+                                                </button>
+
+                                            @endif
+
+                                        </form>
                                         </td>
 
                                     </tr>

@@ -16,6 +16,12 @@ use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\CashierController;
+use App\Http\Controllers\PharmacistController;
+use App\Http\Controllers\StorekeeperController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SettingController;
+
 
 
 
@@ -43,16 +49,53 @@ Route::get('/', function () {
 
 Route::middleware('auth')->group(function () {
 
-/*
-|--------------------------------------------------------------------------
-| Dashboard
-|--------------------------------------------------------------------------
-*/
+  Route::get('/dashboard', [DashboardController::class,'index'])
+        ->middleware('role:admin')
+        ->name('dashboard');
 
-    
-   Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'role:admin,cashier'])
-    ->name('dashboard');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cashier
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('role:cashier')->group(function () {
+
+        Route::get('/cashier', [CashierController::class,'index'])
+            ->middleware(['auth', 'role:cashier'])
+            ->name('cashier.dashboard');
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Pharmacist
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('role:pharmacist')->group(function () {
+
+        Route::get('/pharmacist', [PharmacistController::class,'index'])
+            ->name('pharmacist.dashboard');
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Storekeeper
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('role:storekeeper')->group(function () {
+
+        Route::get('/storekeeper', [StorekeeperController::class,'index'])
+            ->name('storekeeper.dashboard');
+
+    });
+
         /*
     |--------------------------------------------------------------------------
     | Profile
@@ -118,28 +161,24 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/medicines', [MedicineController::class,'index'])
-        ->name('medicines.index')
-        ->middleware('role:admin,pharmacist');
 
     Route::post('/medicines', [MedicineController::class,'store'])
-        ->name('medicine.store')
-        ->middleware('role:admin,pharmacist');
+        ->name('medicine.store');
+        
 
     Route::get('/medicines/{id}/edit', [MedicineController::class,'edit'])
-        ->name('medicine.edit')
-        ->middleware('role:admin,pharmacist');
+        ->name('medicine.edit');
+       
 
     Route::put('/medicines/{id}', [MedicineController::class,'update'])
-        ->name('medicine.update')
-        ->middleware('role:admin,pharmacist');
+        ->name('medicine.update');
+       
 
     Route::delete('/medicines/{id}', [MedicineController::class,'destroy'])
         ->name('medicine.destroy');
 
-    Route::get('/medicines/search', [MedicineController::class,'search'])
-        ->name('medicines.search')
-        ->middleware('role:admin,pharmacist');
+    
+       
 
     
     /*
@@ -187,8 +226,12 @@ Route::middleware('auth')->group(function () {
         Route::put('/suppliers/{id}', [SupplierController::class,'update'])
             ->name('suppliers.update');
     
-        Route::delete('/suppliers/{id}', [SupplierController::class,'destroy'])
+        Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])
             ->name('suppliers.destroy');
+        
+        Route::patch('/suppliers/{supplier}/activate', 
+            [SupplierController::class, 'activate'])
+            ->name('suppliers.activate');
 
         
     /*
@@ -262,6 +305,10 @@ Route::middleware('auth')->group(function () {
    
        Route::delete('/customers/{id}', [CustomerController::class,'destroy'])
            ->name('customers.destroy');
+        
+       Route::patch('/customers/{customer}/toggle-status',
+            [CustomerController::class, 'toggleStatus']
+        )->name('customers.toggleStatus');
 
         
        
@@ -376,14 +423,82 @@ Route::middleware('auth')->group(function () {
             
                     Route::patch('/{draft}/hold', [SaleDraftController::class,'hold'])
                         ->name('drafts.hold');
+                    Route::patch('/drafts/{draft}/resume', [SaleDraftController::class, 'resume'])
+                        ->name('drafts.resume');
             
                 });
+
+                Route::get('/medicines', [MedicineController::class,'index'])
+                     ->name('medicines.index');
+                 Route::get('/medicines/search', [MedicineController::class,'search'])
+                    ->name('medicines.search');
     });    
 
+Route::prefix('reports')
+    ->middleware('role:admin')
+    ->group(function () {
+
+        Route::get('/', [ReportController::class, 'index'])
+            ->name('reports.index');
+
+        Route::get('/sales', [ReportController::class, 'sales'])
+            ->name('reports.sales');
+
+        Route::get('/purchases', [ReportController::class, 'purchases'])
+            ->name('reports.purchases');
+
+        Route::get('/inventory', [ReportController::class, 'inventory'])
+            ->name('reports.inventory');
+
+        Route::get('/profit', [ReportController::class, 'profit'])
+            ->name('reports.profit');
+
+        Route::get('/medicines', [ReportController::class, 'medicines'])
+            ->name('reports.medicines');
+
+        Route::get('/customers', [ReportController::class, 'customers'])
+            ->name('reports.customers');
+        
+        Route::get('/reports/low-stock', [ReportController::class, 'lowStock'])
+        ->name('reports.low-stock');
+
+         Route::get('/expiry', [ReportController::class, 'expiry'])
+           ->name('reports.expiry');
+
+        Route::get('/reports/sales/pdf', [ReportController::class, 'salesPdf'])
+            ->name('reports.sales.pdf');
+
+        Route::get('/reports/purchases/pdf', [ReportController::class, 'purchasesPdf'])
+            ->name('reports.purchases.pdf');
+
+        Route::get('/reports/inventory/pdf', [ReportController::class, 'inventoryPdf'])
+            ->name('reports.inventory.pdf');
+
+        Route::get('/reports/medicines/pdf', [ReportController::class, 'medicinesPdf'])
+            ->name('reports.medicines.pdf');
+
+        Route::get('/reports/customers/pdf', [ReportController::class, 'customersPdf'])
+            ->name('reports.customers.pdf');
+
+        
+    });
 
 
+    /*
+|--------------------------------------------------------------------------
+| Settings
+|--------------------------------------------------------------------------
+*/
 
+Route::middleware('role:admin')->group(function () {
 
+    Route::get('/settings', [SettingController::class, 'index'])
+        ->name('settings.index');
+
+    Route::post('/settings', [SettingController::class, 'store'])
+        ->name('settings.store');
+
+});
 
    
 

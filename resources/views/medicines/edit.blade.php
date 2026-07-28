@@ -95,6 +95,22 @@
                                     required>
 
                             </div>
+                            
+                            <div class="col-md-4 mb-3">
+
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-boxes text-info me-1"></i>
+                                    Minimum Stock
+                                </label>
+
+                                <input
+                                    type="number"
+                                    name="minimum_stock"
+                                    class="form-control"
+                                    value="{{ old('quantity', $medicine->quantity) }}"
+                                    required>
+
+                            </div>
 
                             <div class="col-md-4 mb-3">
 

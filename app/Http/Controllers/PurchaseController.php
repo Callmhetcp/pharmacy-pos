@@ -70,7 +70,7 @@ public function store(Request $request)
 
     ]);
 
-    DB::transaction(function () use ($request) {
+   DB::transaction(function () use ($request) {
 
         $purchase = Purchase::create([
 
@@ -84,7 +84,7 @@ public function store(Request $request)
 
             'grand_total' => 0,
 
-            'user_id' => 1,
+            'user_id' => Auth::id(),
 
         ]);
 
@@ -146,7 +146,7 @@ public function store(Request $request)
 
                 'balance' => $medicine->quantity,
 
-                'user_id' => 1,
+                'user_id' => Auth::id(),
 
             ]);
 
@@ -244,13 +244,10 @@ public function show(Purchase $purchase)
     $purchase->load([
         'supplier',
         'user',
-        'purchaseItems.medicine'
+        'items.medicine'
     ]);
 
-    return view(
-        'purchases.show',
-        compact('purchase')
-    );
+    return view('purchase.show', compact('purchase'));
 }
 
 
@@ -265,13 +262,10 @@ public function receipt(Purchase $purchase)
     $purchase->load([
         'supplier',
         'user',
-        'purchaseItems.medicine'
+        'items.medicine'
     ]);
 
-    return view(
-        'purchases.receipt',
-        compact('purchase')
-    );
+    return view('purchase.receipt', compact('purchase'));
 }
 
 
@@ -284,24 +278,20 @@ public function receipt(Purchase $purchase)
 public function edit(Purchase $purchase)
 {
     $purchase->load([
-        'purchaseItems.medicine'
+        'items.medicine'
     ]);
 
     $suppliers = Supplier::where('status', 'Active')
-        ->orderBy('company')
+        ->orderBy('name')
         ->get();
 
-    $medicines = Medicine::orderBy('name')
-        ->get();
+    $medicines = Medicine::orderBy('name')->get();
 
-    return view(
-        'purchases.edit',
-        compact(
-            'purchase',
-            'suppliers',
-            'medicines'
-        )
-    );
+    return view('purchase.edit', compact(
+        'purchase',
+        'suppliers',
+        'medicines'
+    ));
 }
 /*
 |--------------------------------------------------------------------------

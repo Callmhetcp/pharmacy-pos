@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
+use App\Models\Setting;
+use Illuminate\Support\Facades\View;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,8 +20,14 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
-    {
-        Paginator::useBootstrapFive();
-    }
+   public function boot(): void
+{
+    Paginator::useBootstrapFive();
+
+    View::composer('*', function ($view) {
+
+        $view->with('setting', Setting::first());
+
+    });
+}
 }

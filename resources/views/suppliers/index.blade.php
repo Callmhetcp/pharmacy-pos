@@ -274,26 +274,34 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('submit', function(e){
 
-    const search = document.getElementById('search');
+    if(e.target.classList.contains('delete-form')){
 
-    search.addEventListener('keyup', function () {
+        e.preventDefault();
 
-        fetch("{{ route('suppliers.index') }}?search=" + encodeURIComponent(this.value), {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+        let form = e.target;
+
+        Swal.fire({
+            title: 'Delete Supplier?',
+            text: 'This supplier will be permanently deleted.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it',
+            cancelButtonText: 'Cancel'
+        }).then((result)=>{
+
+            if(result.isConfirmed){
+
+                form.submit();
+
             }
-        })
-        .then(response => response.text())
-        .then(html => {
 
-            document.getElementById('tableBody').innerHTML = html;
+        });
 
-        })
-        .catch(error => console.error(error));
-
-    });
+    }
 
 });
 </script>

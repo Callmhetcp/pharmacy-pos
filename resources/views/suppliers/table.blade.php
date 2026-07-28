@@ -60,23 +60,29 @@
 
                                         </a>
 
-                                        <form
-                                            action="{{ route('suppliers.destroy', $supplier->id) }}"
-                                            method="POST"
-                                            class="d-inline">
+                                       @if($supplier->status == 'Active')
 
-                                            @csrf
-                                            @method('DELETE')
+                                            <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
 
-                                            <button
-                                                type="submit"
-                                                class="btn btn-danger btn-sm delete-btn">
+                                                <button class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                            </form>
 
-                                                <i class="fas fa-trash"></i>
+                                            @else
 
-                                            </button>
+                                            <form action="{{ route('suppliers.activate', $supplier->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                @method('PATCH')
 
-                                        </form>
+                                                <button class="btn btn-success btn-sm">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
+
+                                            @endif
 
                                     </td>
 

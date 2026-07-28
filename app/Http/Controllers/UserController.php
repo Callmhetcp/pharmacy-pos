@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
@@ -66,37 +67,33 @@ class UserController extends Controller
     }
 
    public function destroy(User $user)
-    {
-        if (auth()->user()->is($user)) {
-
-            return back()->with(
-                'error',
-                'You cannot deactivate your own account.'
-            );
-
-        }
-
-        $user->status = 'inactive';
-
-        $user->save();
-
-        return back()->with(
-            'success',
-            'User has been deactivated successfully.'
-        );
-    }
-
-    public function toggleStatus(User $user)
 {
-    if (auth()->user()->is($user)) {
+    if (Auth::id() === $user->id) {
 
         return back()->with(
             'error',
             'You cannot deactivate your own account.'
         );
-
     }
 
+    $user->status = 'inactive';
+    $user->save();
+
+    return back()->with(
+        'success',
+        'User has been deactivated successfully.'
+    );
+}
+
+    public function toggleStatus(User $user)
+{
+   if (Auth::id() === $user->id) {
+
+    return back()->with(
+        'error',
+        'You cannot deactivate your own account.'
+    );
+}
     $user->status = $user->status == 'active'
         ? 'inactive'
         : 'active';

@@ -11,91 +11,87 @@
 
     <div class="card-body">
 
-        <table class="table table-borderless mb-4">
+        <table class="table table-borderless mb-3">
 
             <tr>
-
                 <th>Total Items</th>
-
                 <td class="text-end">
-
                     <span id="totalItems">
                         {{ $currentDraft->items->count() }}
                     </span>
-
                 </td>
-
             </tr>
 
             <tr>
-
                 <th>Total Quantity</th>
-
                 <td class="text-end">
-
                     <span id="totalQuantity">
                         {{ $currentDraft->items->sum('quantity') }}
                     </span>
-
                 </td>
-
             </tr>
 
             <tr>
-
                 <th>Subtotal</th>
-
                 <td class="text-end">
-
                     ₦<span id="subTotal">
-                        {{ number_format($currentDraft->items->sum('subtotal'), 2) }}
+                        {{ number_format($currentDraft->items->sum('subtotal'),2) }}
                     </span>
-
                 </td>
-
             </tr>
 
             <tr>
-
                 <th>Discount</th>
-
                 <td class="text-end">
-
                     ₦<span id="discount">0.00</span>
-
                 </td>
-
             </tr>
 
             <tr>
-
-                <th>Tax</th>
-
+                <th>
+                    VAT ({{ $setting->tax ?? 0 }}%)
+                </th>
                 <td class="text-end">
-
-                    ₦<span id="tax">0.00</span>
-
+                    ₦<span id="tax">
+                        {{ number_format(($currentDraft->items->sum('subtotal') * ($setting->tax ?? 0))/100,2) }}
+                    </span>
                 </td>
-
             </tr>
 
         </table>
 
         <hr>
 
-        <div class="text-center">
+        <div class="d-flex justify-content-between align-items-center">
 
-            <small class="text-muted">
-                GRAND TOTAL
-            </small>
+            <div>
 
-            <h1
-                class="display-5 fw-bold text-success"
-                id="grandTotal">
+                <small class="text-muted text-uppercase">
+                    Grand Total
+                </small>
 
-                ₦{{ number_format($currentDraft->items->sum('subtotal'), 2) }}
+                <h2
+                    id="grandTotal"
+                    class="fw-bold text-success mb-0">
 
-            </h1>
+                    ₦{{ number_format(
+                        $currentDraft->items->sum('subtotal')
+                        + (($currentDraft->items->sum('subtotal') * ($setting->tax ?? 0))/100),
+                    2) }}
+
+                </h2>
+
+            </div>
+
+            <div class="text-end">
+
+                <small class="text-muted">
+
+                    VAT Included
+
+                </small>
+
+            </div>
 
         </div>
 

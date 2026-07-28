@@ -31,26 +31,37 @@ class CustomerController extends Controller
     return view('customers.index', compact('customers', 'search'));
 }
 
-    public function store(Request $request){
-
+public function store(Request $request)
+{
     $request->validate([
-            'name' => 'required|string|min:3|max:100',
-            'address' => 'required|string|min:5',
-            'phone_number' => 'required|string|min:10|max:15',
-        ]);
+        'name' => 'required|string|min:3|max:100',
+        'address' => 'required|string|min:5',
+        'phone_number' => 'required|string|min:10|max:15',
+    ]);
 
-    $customer = new Customer();
+    try {
 
-    $customer->name = $request->name;
-    $customer->phone_number = $request->phone_number;
-    $customer->address = $request->address;
+        $customer = new Customer();
 
-    $customer->save();
+        $customer->name = $request->name;
+        $customer->phone_number = $request->phone_number;
+        $customer->address = $request->address;
 
-    return "Customer Saved Successfully!";
-    
+        $customer->save();
+
+        return redirect()
+            ->route('customers.index')
+            ->with('success', 'Customer added successfully.');
+
+    } catch (\Exception $e) {
+
+        return redirect()
+            ->back()
+            ->withInput()
+            ->with('error', 'Failed to add customer.');
 
     }
+}
 
     public function edit($id){
 
@@ -74,14 +85,26 @@ class CustomerController extends Controller
 
     }
 
-    public function destroy($id){
+   public function destroy(Customer $customer)
+        {
+            $customer->update([
+                'status' => 'Inactive'
+            ]);
 
-        $customer = Customer::find($id);
+            return redirect()
+                ->back()
+                ->with('success','Customer marked as inactive.');
+        }
+    
+   public function toggleStatus(Customer $customer)
+        {
+            $customer->update([
+                'status' => $customer->status == 'Active'
+                    ? 'Inactive'
+                    : 'Active'
+            ]);
 
-        $customer->delete();
-
-        return redirect ('/customers')
-            ->with('sucess','Suppliers have been deleted successfully.');
-
-    }
+            return redirect()->back()
+                ->with('success','Customer status updated successfully.');
+        }
 }
