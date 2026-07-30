@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use App\Helpers\ActivityHelper;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -30,6 +31,13 @@ public function store(LoginRequest $request): RedirectResponse
 
     $user = Auth::user();
 
+
+        ActivityHelper::log(
+            'Login',
+            'Authentication',
+            'User logged in: ' . Auth::user()->name
+        );
+
     return match ($user->role) {
         'admin' => redirect()->route('dashboard'),
         'cashier' => redirect()->route('cashier.dashboard'),
@@ -42,13 +50,29 @@ public function store(LoginRequest $request): RedirectResponse
      * Destroy an authenticated session.
      */
     public function destroy(Request $request): RedirectResponse
-    {
-        Auth::guard('web')->logout();
+{
 
-        $request->session()->invalidate();
+    if (Auth::check()) {
 
-        $request->session()->regenerateToken();
+        ActivityHelper::log(
+            'Logout',
+            'Authentication',
+            'User logged out: ' . Auth::user()->name
+        );
 
-        return redirect('/');
     }
+
+
+    Auth::guard('web')->logout();
+
+
+    $request->session()->invalidate();
+
+
+    $request->session()->regenerateToken();
+
+
+    return redirect('/');
+
+}
 }

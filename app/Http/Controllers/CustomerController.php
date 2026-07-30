@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Customer;
-
+use App\Helpers\ActivityHelper;
+use App\Helpers\NotificationHelper;
 class CustomerController extends Controller
 {
     public function index(Request $request)
@@ -49,6 +50,12 @@ public function store(Request $request)
 
         $customer->save();
 
+        ActivityHelper::log(
+            'Created',
+            'Customer',
+            'Added customer: ' . $customer->name
+        );
+
         return redirect()
             ->route('customers.index')
             ->with('success', 'Customer added successfully.');
@@ -81,30 +88,65 @@ public function store(Request $request)
 
         $customer->save();
 
+        ActivityHelper::log(
+            'Updated',
+            'Customer',
+            'Updated customer: ' . $customer->name
+        );
+
         return redirect('/customers');
 
     }
 
    public function destroy(Customer $customer)
         {
+            
             $customer->update([
                 'status' => 'Inactive'
             ]);
+
+             ActivityHelper::log(
+                'Updated',
+                'Customer',
+                'Deactivated customer: ' . $customer->name
+            );
+
 
             return redirect()
                 ->back()
                 ->with('success','Customer marked as inactive.');
         }
     
-   public function toggleStatus(Customer $customer)
-        {
-            $customer->update([
-                'status' => $customer->status == 'Active'
-                    ? 'Inactive'
-                    : 'Active'
-            ]);
+  public function toggleStatus(Customer $customer)
+{
+    $newStatus = $customer->status == 'Active'
+        ? 'Inactive'
+        : 'Active';
 
-            return redirect()->back()
-                ->with('success','Customer status updated successfully.');
-        }
+
+    $customer->update([
+        'status' => $newStatus
+    ]);
+
+
+    ActivityHelper::log(
+        'Updated',
+        'Customer',
+        'Changed customer status: ' . 
+        $customer->name . 
+        ' to ' . 
+        $newStatus
+    );
+    NotificationHelper::create(
+    title: 'New Customer',
+    message: $customer->name . ' was registered.',
+    type: 'info',
+    role: 'Cashier'
+);
+
+
+    return redirect()
+        ->back()
+        ->with('success','Customer status updated successfully.');
+}
 }

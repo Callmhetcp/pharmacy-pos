@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Supplier;
+use App\Helpers\ActivityHelper;
+use App\Helpers\NotificationHelper;
 
 class SupplierController extends Controller
 {
@@ -54,6 +56,17 @@ class SupplierController extends Controller
         $supplier->notes = $request->notes;
 
         $supplier->save();
+        ActivityHelper::log(
+            'Created',
+            'Supplier',
+            'Added supplier: ' . $supplier->name
+        );
+        NotificationHelper::create(
+            title: 'New Supplier',
+            message: $supplier->name . ' has been added.',
+            type: 'success',
+            role: 'admin'
+        );
 
 
 
@@ -95,17 +108,30 @@ class SupplierController extends Controller
 
         $supplier->save();
 
+        ActivityHelper::log(
+            'Updated',
+            'Supplier',
+            'Updated supplier: ' . $supplier->name
+        );
+
         return redirect('/suppliers')
         ->with('success', 'Supplier has been edited successfully.');
 
     }
 
-    public function destroy(Supplier $supplier)
+  public function destroy(Supplier $supplier)
 {
-     
     $supplier->update([
         'status' => 'Inactive'
     ]);
+
+
+    ActivityHelper::log(
+        'Updated',
+        'Supplier',
+        'Deactivated supplier: ' . $supplier->name
+    );
+
 
     return redirect()->back()
         ->with('success', 'Supplier marked as inactive successfully.');
@@ -116,6 +142,14 @@ public function activate(Supplier $supplier)
     $supplier->update([
         'status' => 'Active'
     ]);
+
+
+    ActivityHelper::log(
+        'Updated',
+        'Supplier',
+        'Activated supplier: ' . $supplier->name
+    );
+
 
     return redirect()->back()
         ->with('success', 'Supplier activated successfully.');

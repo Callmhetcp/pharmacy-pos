@@ -21,6 +21,13 @@ use App\Http\Controllers\PharmacistController;
 use App\Http\Controllers\StorekeeperController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\BackupController;
+use App\Http\Controllers\ActivityController;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ExpenseCategoryController;
+use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\ProfitLossController;
 
 
 
@@ -105,11 +112,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class,'edit'])
         ->name('profile.edit');
 
-    Route::patch('/profile', [ProfileController::class,'update'])
+    Route::put('/profile', [ProfileController::class,'update'])
         ->name('profile.update');
 
     Route::delete('/profile', [ProfileController::class,'destroy'])
         ->name('profile.destroy');
+    
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])
+        ->name('profile.password');
+
         
      Route::middleware('role:admin')->group(function () {
 
@@ -124,6 +135,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])
     ->name('users.toggleStatus')
     ->middleware('role:admin');
+
+    Route::patch('/users/{user}/reset-password', [UserController::class, 'resetPassword'])
+    ->name('users.resetPassword');
     });
 
       Route::middleware('role:admin,pharmacist')->group(function () {
@@ -177,7 +191,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/medicines/{id}', [MedicineController::class,'destroy'])
         ->name('medicine.destroy');
 
-    
+    Route::get('/medicines/barcode/{barcode}', [MedicineController::class, 'barcode']);
        
 
     
@@ -369,21 +383,20 @@ Route::middleware('auth')->group(function () {
                     Route::post('/new', [SaleDraftController::class,'create'])
                         ->name('drafts.new');
             
-            
-                    Route::get('/list', function () {
-            
-                        $drafts = \App\Models\SaleDraft::with('items')
-                            ->whereIn('status',['open','held'])
-                            ->latest()
-                            ->get();
-            
-                        return view(
-                            'sales.draft_list',
-                            compact('drafts')
-                        );
-            
-                    })->name('drafts.list');
-            
+            Route::get('/list', function () {
+
+    $drafts = \App\Models\SaleDraft::with('items')
+        ->where('user_id', Auth::id())
+        ->whereIn('status', ['open','held'])
+        ->latest()
+        ->get();
+
+    return view(
+        'sales.draft_list',
+        compact('drafts')
+    );
+
+})->name('drafts.list');
             
                     Route::get('/', [SaleDraftController::class,'index'])
                         ->name('drafts.index');
@@ -480,7 +493,16 @@ Route::prefix('reports')
         Route::get('/reports/customers/pdf', [ReportController::class, 'customersPdf'])
             ->name('reports.customers.pdf');
 
-        
+        Route::get(
+            '/reports/expenses',
+            [ReportController::class,'expenses']
+        )
+        ->name('reports.expenses');
+        Route::get(
+            '/expenses/export/pdf',
+            [ExpenseController::class,'exportPdf']
+        )
+        ->name('expenses.exportPdf');
     });
 
 
@@ -497,18 +519,83 @@ Route::middleware('role:admin')->group(function () {
 
     Route::post('/settings', [SettingController::class, 'store'])
         ->name('settings.store');
+    
+      /*
+    |--------------------------------------------------------------------------
+    | Database Backup
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/backup',
+    [BackupController::class,'index']
+    )->name('backup.index');
+
+
+    Route::get('/backup/download/{file}',
+        [BackupController::class,'download']
+    )->name('backup.download');
+
+
+    Route::get('/backup/create',
+        [BackupController::class,'create']
+    )->name('backup.create');
+
+    Route::post('/backup/restore',
+    [BackupController::class,'restore']
+    )->name('backup.restore');
+
+   Route::delete('/backup/{file}', [BackupController::class, 'destroy'])
+    ->name('backup.destroy')
+    ->middleware('role:admin');
+});
+
+  Route::middleware('role:admin')->group(function(){
+
+    Route::get(
+        '/activities',
+        [ActivityController::class,'index']
+    )
+    ->name('activities.index');
 
 });
 
-   
-
-
 
    
+Route::prefix('notifications')->group(function () {
+
+    Route::get('/', [NotificationController::class, 'index'])
+        ->name('notifications.index');
+
+    Route::patch('/{notification}/read', [NotificationController::class, 'markAsRead'])
+        ->name('notifications.read');
+
+    Route::patch('/read-all', [NotificationController::class, 'markAllAsRead'])
+        ->name('notifications.readAll');
+
+    Route::delete('/{notification}', [NotificationController::class, 'destroy'])
+        ->name('notifications.destroy');
+     // Delete only read notifications
+    Route::delete('/clear-read', [NotificationController::class, 'clearRead'])
+        ->name('notifications.clearRead');
+
+    // Delete all notifications
+    Route::delete('/clear-all', [NotificationController::class, 'clearAll'])
+        ->name('notifications.clearAll');
+
+    Route::get('/latest', [NotificationController::class, 'latest'])
+        ->name('notifications.latest');
+
+});
+
+Route::resource('expense-categories', ExpenseCategoryController::class);
+
+Route::resource('expenses', ExpenseController::class);
 
 
-
-    
+Route::get(
+    '/reports/profit-loss',
+    [ProfitLossController::class, 'index']
+)->name('reports.profit-loss');
 
 
 });

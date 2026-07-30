@@ -1,82 +1,105 @@
 @extends('layouts.app')
 
+@section('title','Create Purchase')
+
 @section('content')
 
 <div class="container-fluid">
 
-   <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+    <!-- ==========================================================
+    PAGE HEADER
+    =========================================================== -->
 
-        <div class="card-header border-0 text-white d-flex justify-content-between align-items-center"
-     style="background:linear-gradient(135deg,#0d6efd,#0b5ed7);">
+    <div class="d-flex justify-content-between align-items-center mb-4">
 
-            <h4 class="mb-0">
-                <i class="fas fa-cart-plus me-2"></i>
+        <div>
+
+            <h2 class="fw-bold mb-1">
+
+                <i class="fas fa-cart-plus text-primary"></i>
+
                 New Purchase
-            </h4>
 
-            <a href="{{ route('purchase.index') }}" class="btn btn-light">
-                <i class="fas fa-arrow-left"></i>
-                Back
-            </a>
+            </h2>
+
+            <p class="text-muted mb-0">
+
+                Record a supplier purchase and automatically update inventory.
+
+            </p>
 
         </div>
 
-       <div class="card-body p-4">
+        <a href="{{ route('purchase.index') }}"
+           class="btn btn-outline-secondary">
 
-            <form action="{{ route('purchase.store') }}" method="POST">
+            <i class="fas fa-arrow-left"></i>
 
-                @csrf
+            Back
+
+        </a>
+
+    </div>
+
+    <!-- ==========================================================
+    PURCHASE FORM
+    =========================================================== -->
+
+    <form
+        action="{{ route('purchase.store') }}"
+        method="POST"
+        id="purchaseForm">
+
+        @csrf
+
+        <!-- ==========================================================
+        PURCHASE DETAILS
+        =========================================================== -->
+
+        <div class="card shadow-sm border-0 mb-4">
+
+            <div class="card-header bg-primary text-white">
+
+                <h5 class="mb-0">
+
+                    <i class="fas fa-file-invoice"></i>
+
+                    Purchase Information
+
+                </h5>
+
+            </div>
+
+            <div class="card-body">
 
                 <div class="row">
 
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-4 mb-3">
 
                         <label class="form-label fw-bold">
-                            Purchase Number
-                        </label>
 
-                        <input
-                            type="text"
-                            name="purchase_number"
-                            class="form-control form-control-lg"
-                            value="{{ $purchaseNumber }}"
-                            readonly>
-
-                    </div>
-
-                    <div class="col-md-3 mb-3">
-
-                        <label class="form-label fw-bold">
-                            Purchase Date
-                        </label>
-
-                        <input
-                            type="date"
-                            name="purchase_date"
-                           class="form-control form-control-lg"
-                            value="{{ date('Y-m-d') }}">
-
-                    </div>
-
-                    <div class="col-md-3 mb-3">
-
-                        <label class="form-label fw-bold">
                             Supplier
+
                         </label>
 
                         <select
                             name="supplier_id"
-                           class="form-select form-select-lg"
+                            class="form-select"
                             required>
 
                             <option value="">
+
                                 Select Supplier
+
                             </option>
 
                             @foreach($suppliers as $supplier)
 
-                                <option value="{{ $supplier->id }}">
-                                    {{ $supplier->company }}
+                                <option
+                                    value="{{ $supplier->id }}">
+
+                                    {{ $supplier->name }}
+
                                 </option>
 
                             @endforeach
@@ -85,111 +108,307 @@
 
                     </div>
 
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-4 mb-3">
 
                         <label class="form-label fw-bold">
+
                             Invoice Number
+
                         </label>
 
                         <input
                             type="text"
                             name="invoice_number"
-                            class="form-control form-control-lg"
+                            class="form-control"
                             placeholder="Invoice Number">
+
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+
+                        <label class="form-label fw-bold">
+
+                            Purchase Date
+
+                        </label>
+
+                        <input
+                            type="date"
+                            name="purchase_date"
+                            value="{{ date('Y-m-d') }}"
+                            class="form-control"
+                            required>
 
                     </div>
 
                 </div>
 
-                <hr>
+            </div>
 
-                <div class="d-flex justify-content-between align-items-center mb-3">
+        </div>
 
-                    <h5 class="fw-bold text-primary mb-0">
+        <!-- ==========================================================
+        PURCHASE ITEMS
+        =========================================================== -->
 
-                        <i class="fas fa-pills me-2"></i>
+        <div class="card shadow-sm border-0">
 
-                        Purchase Items
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
 
-                    </h5>
+                <h5 class="mb-0">
 
-                    <button
-                        type="button"
-                        class="btn btn-success rounded-pill px-4 shadow-sm"
-                        id="addMedicine">
+                    <i class="fas fa-pills"></i>
 
-                        <i class="fas fa-plus-circle"></i>
+                    Purchase Items
 
-                        Add Medicine
+                </h5>
 
-                    </button>
+                <button
+                    type="button"
+                    id="addRow"
+                    class="btn btn-light btn-sm">
 
-                </div>
+                    <i class="fas fa-plus"></i>
+
+                    Add Item
+
+                </button>
+
+            </div>
+
+            <div class="card-body p-0">
 
                 <div class="table-responsive">
 
-                    <table class="table table-hover align-middle mb-0">
-                        <thead style="background:#0d6efd;color:white;">
+                    <table
+                        class="table table-bordered align-middle mb-0">
+
+                        <thead class="table-light">
+
                             <tr>
 
-                                <th width="20%">Medicine</th>
+                                <th style="width:25%">
 
-                                <th width="12%">Batch No</th>
+                                    Medicine
 
-                                <th width="12%">Expiry</th>
+                                </th>
 
-                                <th width="8%">Qty</th>
+                                <th>
 
-                                <th width="12%">Cost Price</th>
+                                    Batch No.
 
-                                <th width="12%">Selling Price</th>
+                                </th>
 
-                                <th width="14%">Subtotal</th>
+                                <th>
 
-                                <th width="10%">Action</th>
+                                    Expiry
+
+                                </th>
+
+                                <th width="90">
+
+                                    Qty
+
+                                </th>
+
+                                <th>
+
+                                    Cost Price
+
+                                </th>
+
+                                <th>
+
+                                    Selling Price
+
+                                </th>
+
+                                <th>
+
+                                    Subtotal
+
+                                </th>
+
+                                <th width="60">
+
+                                </th>
 
                             </tr>
 
                         </thead>
 
                         <tbody id="purchaseBody">
+                            <tr>
 
-                        </tbody>
+    <td>
 
-                    </table>
+        <select
+            name="medicine_id[]"
+            class="form-select medicine"
+            required>
 
-                </div>
-<div class="row mt-5">
+            <option value="">
+
+                Select Medicine
+
+            </option>
+
+            @foreach($medicines as $medicine)
+
+                <option
+                    value="{{ $medicine->id }}">
+
+                    {{ $medicine->name }}
+
+                </option>
+
+            @endforeach
+
+        </select>
+
+    </td>
+
+    <td>
+
+        <input
+            type="text"
+            name="batch_number[]"
+            class="form-control"
+            required>
+
+    </td>
+
+    <td>
+
+        <input
+            type="date"
+            name="expiry_date[]"
+            class="form-control"
+            required>
+
+    </td>
+
+    <td>
+
+        <input
+            type="number"
+            name="quantity[]"
+            class="form-control quantity"
+            min="1"
+            value="1"
+            required>
+
+    </td>
+
+    <td>
+
+        <input
+            type="number"
+            step="0.01"
+            min="0"
+            name="cost_price[]"
+            class="form-control cost_price"
+            required>
+
+    </td>
+
+    <td>
+
+        <input
+            type="number"
+            step="0.01"
+            min="0"
+            name="selling_price[]"
+            class="form-control selling_price"
+            required>
+
+    </td>
+
+    <td>
+
+        <input
+            type="text"
+            class="form-control subtotal"
+            value="0.00"
+            readonly>
+
+    </td>
+
+    <td class="text-center">
+
+        <button
+            type="button"
+            class="btn btn-danger btn-sm removeRow">
+
+            <i class="fas fa-trash"></i>
+
+        </button>
+
+    </td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- ==========================================================
+PURCHASE SUMMARY
+========================================================== -->
+
+<div class="row mt-4">
 
     <div class="col-lg-7"></div>
 
     <div class="col-lg-5">
 
-        <div class="card border-0 bg-light shadow-sm">
+        <div class="card shadow border-0">
+
+            <div class="card-header bg-primary text-white">
+
+                <h5 class="mb-0">
+
+                    <i class="fas fa-calculator me-2"></i>
+
+                    Purchase Summary
+
+                </h5>
+
+            </div>
 
             <div class="card-body">
 
-                <div class="d-flex justify-content-between">
+                <input
+                    type="hidden"
+                    name="grand_total"
+                    id="grandTotal">
 
-                    <h5 class="fw-bold">
+                <div class="d-flex justify-content-between mb-3">
+
+                    <span class="fw-bold">
 
                         Grand Total
 
-                    </h5>
+                    </span>
 
-                    <h3 class="text-success fw-bold">
+                    <span
+                        class="fw-bold text-success fs-4">
 
-                        ₦<span id="grandTotalText">0.00</span>
+                        ₦<span id="grandTotalText">
 
-                    </h3>
+                            0.00
+
+                        </span>
+
+                    </span>
 
                 </div>
-
-                <input
-                    type="hidden"
-                    id="grandTotal"
-                    name="grand_total"
-                    value="0">
 
             </div>
 
@@ -199,20 +418,140 @@
 
 </div>
 
-                <div class="text-end mt-4">
+<!-- ==========================================================
+PAYMENT INFORMATION
+========================================================== -->
 
-                    <button
-                        type="submit"
-                        class="btn btn-primary btn-lg px-5 rounded-pill shadow">
+<div class="row mt-4">
 
-                        <i class="fas fa-save"></i>
+    <div class="col-lg-7"></div>
 
-                        Save Purchase
+    <div class="col-lg-5">
 
-                    </button>
+        <div class="card shadow border-0">
+
+            <div class="card-header bg-success text-white">
+
+                <h5 class="mb-0">
+
+                    <i class="fas fa-credit-card me-2"></i>
+
+                    Payment Information
+
+                </h5>
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="mb-3">
+
+                    <label class="form-label fw-bold">
+
+                        Initial Payment
+
+                    </label>
+
+                    <input
+                        type="number"
+                        name="amount_paid"
+                        id="amountPaid"
+                        class="form-control form-control-lg"
+                        value="0"
+                        min="0"
+                        step="0.01">
 
                 </div>
-                            </form>
+
+                <div class="mb-3">
+
+                    <label class="form-label fw-bold">
+
+                        Payment Method
+
+                    </label>
+
+                    <select
+                        name="payment_method"
+                        class="form-select form-select-lg">
+
+                        <option value="Cash">
+
+                            Cash
+
+                        </option>
+
+                        <option value="Bank Transfer">
+
+                            Bank Transfer
+
+                        </option>
+
+                        <option value="POS">
+
+                            POS
+
+                        </option>
+
+                        <option value="Cheque">
+
+                            Cheque
+
+                        </option>
+
+                        <option value="Credit">
+
+                            Credit Purchase
+
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between mb-2">
+
+                    <span class="fw-bold">
+
+                        Purchase Total
+
+                    </span>
+
+                    <span class="fw-bold text-success">
+
+                        ₦<span id="paymentGrandTotal">
+
+                            0.00
+
+                        </span>
+
+                    </span>
+
+                </div>
+
+                <div class="d-flex justify-content-between">
+
+                    <span class="fw-bold">
+
+                        Outstanding Balance
+
+                    </span>
+
+                    <span class="fw-bold text-danger">
+
+                        ₦<span id="balanceText">
+
+                            0.00
+
+                        </span>
+
+                    </span>
+
+                </div>
+
+            </div>
 
         </div>
 
@@ -220,181 +559,34 @@
 
 </div>
 
-<script>
+<div class="text-end mt-4 mb-5">
 
-document.addEventListener("DOMContentLoaded", function () {
+    <button
+        type="submit"
+        class="btn btn-primary btn-lg px-5 rounded-pill shadow">
+
+        <i class="fas fa-save me-2"></i>
+
+        Save Purchase
+
+    </button>
+
+</div>
+
+</form>
+
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
 
     const purchaseBody = document.getElementById("purchaseBody");
-    const addMedicineBtn = document.getElementById("addMedicine");
+    const addRowBtn = document.getElementById("addRow");
     const grandTotal = document.getElementById("grandTotal");
+    const amountPaid = document.getElementById("amountPaid");
 
-    function addRow() {
-
-        let html = `
-
-        <tr>
-
-            <td>
-
-                <select
-                    name="medicine_id[]"
-                    class="form-select medicine"
-                    required>
-
-                    <option value="">Select Medicine</option>
-
-                    @foreach($medicines as $medicine)
-
-                        <option value="{{ $medicine->id }}">
-                            {{ $medicine->name }}
-                        </option>
-
-                    @endforeach
-
-                </select>
-
-            </td>
-
-            <td>
-
-                <input
-                    type="text"
-                    name="batch_number[]"
-                    class="form-control batch_number">
-
-            </td>
-
-            <td>
-
-                <input
-                    type="date"
-                    name="expiry_date[]"
-                    class="form-control expiry">
-
-            </td>
-
-            <td>
-
-                <input
-                    type="number"
-                    name="quantity[]"
-                    class="form-control quantity"
-                    value="1"
-                    min="1">
-
-            </td>
-
-            <td>
-
-                <input
-                    type="number"
-                    name="cost_price[]"
-                    class="form-control cost_price"
-                    value="0"
-                    min="0"
-                    step="0.01">
-
-            </td>
-
-            <td>
-
-                <input
-                    type="number"
-                    name="selling_price[]"
-                    class="form-control selling_price"
-                    value="0"
-                    min="0"
-                    step="0.01">
-
-            </td>
-
-            <td>
-
-                <input
-                    type="text"
-                    class="form-control subtotal"
-                    value="0.00"
-                    readonly>
-
-            </td>
-
-            <td class="text-center">
-
-                <button
-                    type="button"
-                    class="btn btn-outline-danger rounded-circle removeRow">
-
-                    <i class="fas fa-trash"></i>
-
-                </button>
-
-            </td>
-
-        </tr>
-
-        `;
-
-        purchaseBody.insertAdjacentHTML("beforeend", html);
-
-    }
-
-    addMedicineBtn.addEventListener("click", addRow);
-        purchaseBody.addEventListener("input", function (e) {
-
-        if (
-            e.target.classList.contains("quantity") ||
-            e.target.classList.contains("cost_price")
-        ) {
-
-            calculateTotals();
-
-        }
-
-    });
-
-
-    purchaseBody.addEventListener("click", function (e) {
-
-        if (e.target.closest(".removeRow")) {
-
-            e.target.closest("tr").remove();
-
-            calculateTotals();
-
-        }
-
-    });
-
-
-    purchaseBody.addEventListener("change", function (e) {
-
-        let row = e.target.closest("tr");
-
-        if (!row) return;
-
-        let medicine = row.querySelector(".medicine").value;
-        let batch = row.querySelector(".batch_number").value;
-        let expiry = row.querySelector(".expiry").value;
-        let qty = row.querySelector(".quantity").value;
-        let cost = row.querySelector(".cost_price").value;
-
-        let lastRow = purchaseBody.lastElementChild;
-
-        if (
-            row === lastRow &&
-            medicine &&
-            batch &&
-            expiry &&
-            qty > 0 &&
-            cost > 0
-        ) {
-
-            addRow();
-
-        }
-
-    });
-
+    // ==========================================
+    // CALCULATE TOTALS
+    // ==========================================
 
     function calculateTotals() {
 
@@ -414,17 +606,124 @@ document.addEventListener("DOMContentLoaded", function () {
 
         });
 
-       grandTotal.value = total.toFixed(2);
+        grandTotal.value = total.toFixed(2);
 
-            document.getElementById("grandTotalText").innerHTML =
-                Number(total).toLocaleString('en-NG',{
-                    minimumFractionDigits:2
-                });
+        document.getElementById("grandTotalText").innerHTML =
+            total.toLocaleString('en-NG', {
+                minimumFractionDigits: 2
+            });
+
+        document.getElementById("paymentGrandTotal").innerHTML =
+            total.toLocaleString('en-NG', {
+                minimumFractionDigits: 2
+            });
+
+        let paid = parseFloat(amountPaid.value) || 0;
+
+        if (paid > total) {
+
+            paid = total;
+
+            amountPaid.value = total.toFixed(2);
+
+        }
+
+        let balance = total - paid;
+
+        document.getElementById("balanceText").innerHTML =
+            balance.toLocaleString('en-NG', {
+                minimumFractionDigits: 2
+            });
 
     }
 
-    addRow();
+    // ==========================================
+    // ADD NEW ROW
+    // ==========================================
+
+    addRowBtn.addEventListener("click", function () {
+
+        let row = purchaseBody.querySelector("tr").cloneNode(true);
+
+        row.querySelectorAll("input").forEach(function (input) {
+
+            if (
+                input.classList.contains("quantity")
+            ) {
+
+                input.value = 1;
+
+            } else if (
+                input.classList.contains("subtotal")
+            ) {
+
+                input.value = "0.00";
+
+            } else {
+
+                input.value = "";
+
+            }
+
+        });
+
+        row.querySelectorAll("select").forEach(function (select) {
+
+            select.selectedIndex = 0;
+
+        });
+
+        purchaseBody.appendChild(row);
+
+        calculateTotals();
+
+    });
+
+    // ==========================================
+    // REMOVE ROW
+    // ==========================================
+
+    purchaseBody.addEventListener("click", function (e) {
+
+        if (e.target.closest(".removeRow")) {
+
+            if (purchaseBody.querySelectorAll("tr").length > 1) {
+
+                e.target.closest("tr").remove();
+
+                calculateTotals();
+
+            }
+
+        }
+
+    });
+
+    // ==========================================
+    // LIVE CALCULATIONS
+    // ==========================================
+
+    purchaseBody.addEventListener("input", function (e) {
+
+        if (
+
+            e.target.classList.contains("quantity") ||
+
+            e.target.classList.contains("cost_price")
+
+        ) {
+
+            calculateTotals();
+
+        }
+
+    });
+
+    amountPaid.addEventListener("input", calculateTotals);
+
+    calculateTotals();
 
 });
 </script>
+
 @endsection

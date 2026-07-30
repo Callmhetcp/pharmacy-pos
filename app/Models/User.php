@@ -24,6 +24,7 @@ class User extends Authenticatable
         'password',
         'role',
         'status',
+         'avatar',
     ];
     /**
      * The attributes that should be hidden for serialization.
@@ -48,5 +49,9 @@ class User extends Authenticatable
         ];
     }
 
+    public function expenses()
+{
+    return $this->hasMany(Expense::class);
+}
     
 }

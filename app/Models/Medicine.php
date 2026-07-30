@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+
 class Medicine extends Model
 {
     protected $fillable = [
@@ -15,6 +16,7 @@ class Medicine extends Model
         'category_id',
         'supplier_id',
         'expiry_date',
+        'barcode',
     ];
 
     public function category()

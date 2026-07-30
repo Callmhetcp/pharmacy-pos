@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Helpers\NotificationHelper;
 
 class UserController extends Controller
 {
@@ -30,12 +32,18 @@ class UserController extends Controller
             'password' => 'required|min:8|confirmed',
         ]);
 
-        User::create([
+       $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'role' => $request->role,
             'password' => Hash::make($request->password),
         ]);
+        NotificationHelper::create(
+            title: 'New User',
+            message: $user->name . ' has been added to the system.',
+            type: 'info',
+            role: 'admin'
+        );
 
         return redirect()
             ->route('users.index')
@@ -60,6 +68,14 @@ class UserController extends Controller
             'email' => $request->email,
             'role' => $request->role,
         ]);
+
+        NotificationHelper::create(
+            title: 'User Updated',
+            message: $user->name . "'s account information was updated.",
+            type: 'info',
+            role: 'admin',
+            userId: $user->id
+        );
 
         return redirect()
             ->route('users.index')
@@ -100,9 +116,51 @@ class UserController extends Controller
 
     $user->save();
 
+    NotificationHelper::create(
+    title: 'User Status Changed',
+    message: $user->name . ' has been ' .
+        ($user->status === 'active' ? 'activated' : 'deactivated') . '.',
+    type: 'warning',
+    role: 'admin',
+    userId: $user->id
+);
+
     return back()->with(
         'success',
         'User status updated successfully.'
     );
+}
+
+public function resetPassword(Request $request, User $user)
+{
+    $request->validate([
+        'password' => [
+            'required',
+            'confirmed',
+            'min:8',
+        ]
+    ]);
+
+    $user->update([
+        'password' => Hash::make($request->password)
+    ]);
+
+    ActivityLog::create([
+        'user_id'     => Auth::id(),
+        'action'      => 'Password Reset',
+        'module'      => 'User Management',
+        'description' => 'Reset password for user: ' . $user->name,
+        'ip_address'  => $request->ip(),
+        'browser'     => $request->userAgent(),
+    ]);
+    NotificationHelper::create(
+    title: 'Password Reset',
+    message: 'Password was reset for ' . $user->name . '.',
+    type: 'warning',
+    role: 'admin',
+    userId: $user->id
+);
+
+    return back()->with('success', 'Password reset successfully.');
 }
 }

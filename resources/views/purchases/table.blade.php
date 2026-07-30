@@ -38,21 +38,45 @@
 
                             </td>
 
-                            <td class="text-end fw-bold text-success">
+                           <td class="text-end">
+    ₦{{ number_format($purchase->grand_total,2) }}
+</td>
 
-                                ₦{{ number_format($purchase->grand_total,2) }}
+<td class="text-end text-success">
+    ₦{{ number_format($purchase->amount_paid,2) }}
+</td>
 
-                            </td>
+<td class="text-end text-danger">
+    ₦{{ number_format($purchase->balance,2) }}
+</td>
 
-                            <td class="text-center">
+<td class="text-center">
 
-                                <span class="badge bg-primary rounded-pill">
+    @if($purchase->payment_status == 'Paid')
 
-                                    {{ $purchase->purchase_items_count }}
+        <span class="badge bg-success">
+            Paid
+        </span>
 
-                                </span>
+    @elseif($purchase->payment_status == 'Partial')
 
-                            </td>
+        <span class="badge bg-warning text-dark">
+            Partial
+        </span>
+
+    @else
+
+        <span class="badge bg-danger">
+            Unpaid
+        </span>
+
+    @endif
+
+</td>
+
+<td class="text-center">
+    {{ $purchase->items->count() }}
+</td>
 
                             <td class="text-center">
 
@@ -127,3 +151,44 @@
                         </tr>
 
                         @endforelse
+                        <script>
+                            document.addEventListener("DOMContentLoaded", function () {
+
+    document.querySelectorAll(".delete-btn").forEach(button => {
+
+        button.addEventListener("click", function () {
+
+            const form = this.closest("form");
+
+            Swal.fire({
+
+                title: "Delete Purchase?",
+
+                text: "This purchase will be permanently deleted.",
+
+                icon: "warning",
+
+                showCancelButton: true,
+
+                confirmButtonColor: "#d33",
+
+                cancelButtonColor: "#3085d6",
+
+                confirmButtonText: "Yes, delete it!"
+
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    form.submit();
+
+                }
+
+            });
+
+        });
+
+    });
+
+});
+                        </script>

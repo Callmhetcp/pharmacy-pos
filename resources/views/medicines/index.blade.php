@@ -213,6 +213,7 @@
                                     <th>Selling Price</th>
                                     <th>Expiry</th>
                                     <th>Category</th>
+                                    <th>Barcode</th>
                                     <th class="text-center">Actions</th>
 
                                 </tr>
@@ -236,6 +237,7 @@
         </div>
 
     </div>
+    
 
 </div>
 

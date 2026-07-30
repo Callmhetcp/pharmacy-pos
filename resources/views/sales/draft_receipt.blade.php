@@ -39,6 +39,19 @@
 
 <body>
 
+    @if($draft->status !== 'open')
+
+<script>
+    alert("This draft is not available for printing.");
+    window.close();
+</script>
+
+@php
+exit;
+@endphp
+
+@endif
+
 
 <div class="receipt">
 

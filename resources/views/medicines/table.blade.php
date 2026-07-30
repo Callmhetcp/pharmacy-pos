@@ -71,6 +71,9 @@
                                         </span>
 
                                     </td>
+                                    <td>
+                                        {{ $medicine->barcode }}
+                                    </td>
 
                                     <td class="text-center">
 

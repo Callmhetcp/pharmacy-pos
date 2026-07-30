@@ -174,6 +174,22 @@
 
                             </div>
 
+                            <div class="col-md-6">
+
+                                <label class="form-label fw-semibold">
+
+                                    Barcode
+
+                                </label>
+
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    name="barcode"
+                                    value="{{ old('barcode',$medicine->barcode ?? '') }}">
+
+                            </div>
+
                         </div>
 
                         <hr>

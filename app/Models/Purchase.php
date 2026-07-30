@@ -12,14 +12,27 @@ class Purchase extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'purchase_number',
-        'supplier_id',
-        'invoice_number',
-        'purchase_date',
-        'grand_total',
-        'user_id',
-    ];
+   protected $fillable = [
+
+    'purchase_number',
+
+    'supplier_id',
+
+    'invoice_number',
+
+    'purchase_date',
+
+    'grand_total',
+
+    'amount_paid',
+
+    'balance',
+
+    'payment_status',
+
+    'user_id',
+
+];
 
     public function supplier(): BelongsTo
     {

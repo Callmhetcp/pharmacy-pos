@@ -259,18 +259,72 @@
             {{-- ================= RIGHT MENU ================= --}}
             <ul class="navbar-nav ms-auto">
 
-                {{-- Notifications --}}
-                <li class="nav-item me-3">
+               {{-- ==========================
+                    Notifications
+                ========================== --}}
 
-                    <a class="nav-link position-relative" href="#">
+                <li class="nav-item dropdown">
 
-                        <i class="fas fa-bell fa-lg"></i>
+                    <a class="nav-link position-relative"
+                    href="#"
+                    role="button"
+                    data-bs-toggle="dropdown">
 
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            3
+                        <i class="fas fa-bell fs-5"></i>
+
+                        <span id="notificationCount"
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                            style="{{ $unreadCount ? '' : 'display:none' }}">
+
+                            {{ $unreadCount > 99 ? '99+' : $unreadCount }}
+
                         </span>
 
                     </a>
+
+                    <div class="dropdown-menu dropdown-menu-end shadow p-0"
+                        style="width:380px;">
+
+                        {{-- Header --}}
+                        <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+
+                            <strong>
+                                Notifications
+
+                                <span id="headerCount"
+                                    class="badge bg-danger">
+
+                                    {{ $unreadCount }}
+
+                                </span>
+
+                            </strong>
+
+                            <form action="{{ route('notifications.readAll') }}"
+                                method="POST">
+
+                                @csrf
+                                @method('PATCH')
+
+                                <button class="btn btn-link btn-sm p-0">
+
+                                    Mark all read
+
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                        {{-- Notification List --}}
+                        <div id="notificationList"
+                            style="max-height:400px; overflow-y:auto;">
+
+                            @include('notifications.list')
+
+                        </div>
+
+                    </div>
 
                 </li>
 
@@ -281,7 +335,20 @@
                     href="#"
                     data-bs-toggle="dropdown">
 
-                        <i class="fas fa-user-circle me-1"></i>
+                         @if(auth()->user()->avatar)
+
+
+
+                            <img src="{{ asset('storage/'.auth()->user()->avatar) }}"
+
+                               class="nav-profile-img me-1">
+                                
+
+
+
+                        @else
+                            <i class="fas fa-user-circle me-1"></i>
+                        @endif
 
                         {{ auth()->user()->name ?? 'Administrator' }}
 
@@ -320,6 +387,23 @@
                         @endif
 
                         @if(auth()->user()->role == 'admin')
+                        <li >
+
+                            <a href="{{ route('activities.index') }}" 
+                            class="dropdown-item">
+
+                                <i class="fas fa-history"></i>
+
+                                <span>
+                                    Activity Logs
+                                </span>
+
+                            </a>
+
+                        </li>
+                         @endif
+
+                        @if(auth()->user()->role == 'admin')
 
                         <li>
 
@@ -347,6 +431,34 @@
 
                         <li>
                             <hr class="dropdown-divider">
+                        </li>
+                        <li >
+
+                            <a href="{{ route('expense-categories.index') }}"
+                            class="dropdown-item">
+
+                                <i class="fas fa-tags"></i>
+
+                                <span>
+                                    Expense Categories
+                                </span>
+
+                            </a>
+
+                        </li>
+                        <li >
+
+                            <a href="{{ route('expenses.index') }}"
+                            class="dropdown-item">
+
+                            <i class="fas fa-money-bill-wave"></i>
+
+                            <span>
+                            Expenses
+                            </span>
+
+                            </a>
+
                         </li>
 
                         <li>
@@ -549,6 +661,44 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
+
+<script>
+
+function loadNotifications(){
+
+    fetch("{{ route('notifications.latest') }}")
+
+    .then(response=>response.json())
+
+    .then(data=>{
+
+        document.getElementById("notificationList").innerHTML = data.html;
+
+        document.getElementById("headerCount").innerHTML = data.count;
+
+        const badge = document.getElementById("notificationCount");
+
+        if(data.count>0){
+
+            badge.style.display="inline-block";
+
+            badge.innerHTML=data.count>99 ? "99+" : data.count;
+
+        }else{
+
+            badge.style.display="none";
+
+        }
+
+    });
+
+}
+
+loadNotifications();
+
+setInterval(loadNotifications,30000);
+
+</script>
 <!-- ========================= -->
 <!-- AUTO DISMISS ALERTS -->
 <!-- ========================= -->

@@ -660,3 +660,26 @@ html{
     }
 
 }
+.nav-profile-img {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.dropdown-item {
+
+    transition: .25s;
+
+}
+
+.dropdown-item:hover {
+
+    background: #f8f9fa;
+
+}
+
+.dropdown-item.bg-light {
+
+    border-left: 4px solid #0d6efd;
+
+}

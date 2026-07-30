@@ -10,6 +10,9 @@ use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Helpers\ActivityHelper;
+use App\Models\Notification;
+use App\Helpers\NotificationHelper;
 
 class PurchaseController extends Controller
 {
@@ -29,6 +32,8 @@ class PurchaseController extends Controller
 
         $purchaseNumber = $this->generatePurchaseNumber();
 
+        
+
         return view('purchases.create', compact(
             'suppliers',
             'medicines',
@@ -46,77 +51,97 @@ public function store(Request $request)
 {
     $request->validate([
 
-        'supplier_id' => 'required|exists:suppliers,id',
-        'purchase_date' => 'required|date',
-        'invoice_number' => 'nullable|string|max:255',
+        'supplier_id'        => 'required|exists:suppliers,id',
+        'purchase_date'      => 'required|date',
+        'invoice_number'     => 'nullable|string|max:255',
 
-        'medicine_id' => 'required|array',
-        'medicine_id.*' => 'required|exists:medicines,id',
+        'medicine_id'        => 'required|array',
+        'medicine_id.*'      => 'required|exists:medicines,id',
 
-        'batch_number' => 'required|array',
-        'batch_number.*' => 'required|string|max:255',
+        'batch_number'       => 'required|array',
+        'batch_number.*'     => 'required|string|max:255',
 
-        'expiry_date' => 'required|array',
-        'expiry_date.*' => 'required|date',
+        'expiry_date'        => 'required|array',
+        'expiry_date.*'      => 'required|date',
 
-        'quantity' => 'required|array',
-        'quantity.*' => 'required|integer|min:1',
+        'quantity'           => 'required|array',
+        'quantity.*'         => 'required|integer|min:1',
 
-        'cost_price' => 'required|array',
-        'cost_price.*' => 'required|numeric|min:0',
+        'cost_price'         => 'required|array',
+        'cost_price.*'       => 'required|numeric|min:0',
 
-        'selling_price' => 'required|array',
-        'selling_price.*' => 'required|numeric|min:0',
+        'selling_price'      => 'required|array',
+        'selling_price.*'    => 'required|numeric|min:0',
+
+        'amount_paid'        => 'required|numeric|min:0',
+
+        'payment_method'     => 'required|string',
 
     ]);
 
-   DB::transaction(function () use ($request) {
+    DB::transaction(function () use ($request) {
+
+        // =====================================================
+        // CREATE PURCHASE
+        // =====================================================
 
         $purchase = Purchase::create([
 
             'purchase_number' => $this->generatePurchaseNumber(),
 
-            'supplier_id' => $request->supplier_id,
+            'supplier_id'     => $request->supplier_id,
 
-            'invoice_number' => $request->invoice_number,
+            'invoice_number'  => $request->invoice_number,
 
-            'purchase_date' => $request->purchase_date,
+            'purchase_date'   => $request->purchase_date,
 
-            'grand_total' => 0,
+            'grand_total'     => 0,
 
-            'user_id' => Auth::id(),
+            'amount_paid'     => 0,
+
+            'balance'         => 0,
+
+            'payment_method'  => $request->payment_method,
+
+            'payment_status'  => 'Unpaid',
+
+            'user_id'         => Auth::id(),
 
         ]);
 
         $grandTotal = 0;
 
+        // =====================================================
+        // SAVE PURCHASE ITEMS
+        // =====================================================
+
         foreach ($request->medicine_id as $index => $medicineId) {
 
-            $qty = $request->quantity[$index];
+            $qty      = $request->quantity[$index];
 
-            $cost = $request->cost_price[$index];
+            $cost     = $request->cost_price[$index];
 
-            $selling = $request->selling_price[$index];
+            $selling  = $request->selling_price[$index];
 
             $subtotal = $qty * $cost;
 
             PurchaseItem::create([
 
-                'purchase_id' => $purchase->id,
+                'purchase_id'   => $purchase->id,
 
-                'medicine_id' => $medicineId,
+                'medicine_id'   => $medicineId,
 
-                'batch_number' => $request->batch_number[$index],
+                'batch_number'  => $request->batch_number[$index],
 
-                'expiry_date' => $request->expiry_date[$index],
+                'expiry_date'   => $request->expiry_date[$index],
 
-                'quantity' => $qty,
+                'quantity'      => $qty,
 
-                'cost_price' => $cost,
+                'cost_price'    => $cost,
 
                 'selling_price' => $selling,
 
-                'subtotal' => $subtotal,
+                'subtotal'      => $subtotal,
 
             ]);
 
@@ -132,40 +157,118 @@ public function store(Request $request)
 
             $medicine->save();
 
+            // Remove low stock notification
+
+            if ($medicine->quantity > $medicine->minimum_stock) {
+
+                Notification::where('medicine_id', $medicine->id)
+                    ->where('title', 'Low Stock')
+                    ->delete();
+
+            }
+
+            // Stock movement
+
             StockMovement::create([
 
-                'medicine_id' => $medicine->id,
+                'medicine_id'      => $medicine->id,
 
                 'reference_number' => $purchase->purchase_number,
 
-                'type' => StockMovement::TYPE_PURCHASE,
+                'type'             => StockMovement::TYPE_PURCHASE,
 
-                'quantity_in' => $qty,
+                'quantity_in'      => $qty,
 
-                'quantity_out' => 0,
+                'quantity_out'     => 0,
 
-                'balance' => $medicine->quantity,
+                'balance'          => $medicine->quantity,
 
-                'user_id' => Auth::id(),
+                'user_id'          => Auth::id(),
 
             ]);
 
             $grandTotal += $subtotal;
+
         }
+
+        // =====================================================
+        // PAYMENT CALCULATION
+        // =====================================================
+
+        $amountPaid = $request->amount_paid;
+
+        $balance = $grandTotal - $amountPaid;
+
+        if ($amountPaid <= 0) {
+
+            $paymentStatus = 'Unpaid';
+
+        } elseif ($balance <= 0) {
+
+            $paymentStatus = 'Paid';
+
+            $balance = 0;
+
+        } else {
+
+            $paymentStatus = 'Partial';
+
+        }
+
+        // =====================================================
+        // UPDATE PURCHASE TOTALS
+        // =====================================================
 
         $purchase->update([
 
-            'grand_total' => $grandTotal,
+            'grand_total'    => $grandTotal,
+
+            'amount_paid'    => $amountPaid,
+
+            'balance'        => $balance,
+
+            'payment_method' => $request->payment_method,
+
+            'payment_status' => $paymentStatus,
 
         ]);
+
+        // =====================================================
+        // NOTIFICATION
+        // =====================================================
+
+        NotificationHelper::create(
+
+            title: 'Purchase Completed',
+
+            message: 'Purchase ' . $purchase->purchase_number . ' has been recorded.',
+
+            type: 'success',
+
+            role: 'Storekeeper'
+
+        );
+
+        // =====================================================
+        // ACTIVITY LOG
+        // =====================================================
+
+        ActivityHelper::log(
+
+            'Created',
+
+            'Purchase',
+
+            'Created purchase: ' . $purchase->purchase_number
+
+        );
 
     });
 
     return redirect()
-        ->route('purchase.index')
+        ->route('purchases.index')
         ->with('success', 'Purchase saved successfully.');
 }
-
 /*
 |--------------------------------------------------------------------------
 | Generate Purchase Number
@@ -174,14 +277,26 @@ public function store(Request $request)
 
 private function generatePurchaseNumber()
 {
-    $lastPurchase = Purchase::latest()->first();
+    $year = date('Y');
 
-    $nextNumber = $lastPurchase
-        ? ((int) substr($lastPurchase->purchase_number, -6)) + 1
-        : 1;
+    $lastPurchase = Purchase::where('purchase_number', 'like', "HP-PUR{$year}-%")
+        ->orderByDesc('purchase_number')
+        ->first();
+
+    if ($lastPurchase) {
+
+        $lastNumber = (int) substr($lastPurchase->purchase_number, -6);
+
+        $nextNumber = $lastNumber + 1;
+
+    } else {
+
+        $nextNumber = 1;
+
+    }
 
     return 'HP-PUR'
-        . date('Y')
+        . $year
         . '-'
         . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
 }
@@ -247,7 +362,7 @@ public function show(Purchase $purchase)
         'items.medicine'
     ]);
 
-    return view('purchase.show', compact('purchase'));
+    return view('purchases.show', compact('purchase'));
 }
 
 
@@ -265,7 +380,7 @@ public function receipt(Purchase $purchase)
         'items.medicine'
     ]);
 
-    return view('purchase.receipt', compact('purchase'));
+    return view('purchases.receipt', compact('purchase'));
 }
 
 
@@ -287,7 +402,7 @@ public function edit(Purchase $purchase)
 
     $medicines = Medicine::orderBy('name')->get();
 
-    return view('purchase.edit', compact(
+    return view('purchases.edit', compact(
         'purchase',
         'suppliers',
         'medicines'
@@ -459,15 +574,27 @@ public function update(Request $request, Purchase $purchase)
 
                 'balance' => $medicine->quantity,
 
-                'user_id' => 1,
+               'user_id' => Auth::id(),
 
             ]);
         }
 
     });
 
+        ActivityHelper::log(
+        'Updated',
+        'Purchase',
+        'Updated purchase: ' . $purchase->purchase_number
+    );
+    NotificationHelper::create(
+    title: 'Purchase Completed',
+    message: 'Purchase ' . $purchase->purchase_number . ' has been recorded.',
+    type: 'success',
+    role: 'Storekeeper'
+);
+
     return redirect()
-        ->route('purchase.index')
+        ->route('purchases.index')
         ->with('success', 'Purchase updated successfully.');
 }
 
@@ -514,21 +641,26 @@ public function destroy(Purchase $purchase)
             $purchase->purchase_number
         )->delete();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Delete Purchase Items
-        |--------------------------------------------------------------------------
-        */
 
-        $purchase->purchaseItems()->delete();
+       /*
+|--------------------------------------------------------------------------
+| Delete Purchase Items
+|--------------------------------------------------------------------------
+*/
 
-        /*
-        |--------------------------------------------------------------------------
-        | Delete Purchase
-        |--------------------------------------------------------------------------
-        */
+$purchase->purchaseItems()->delete();
 
-        $purchase->delete();
+
+// Activity Log
+
+ActivityHelper::log(
+    'Deleted',
+    'Purchase',
+    'Deleted purchase: ' . $purchase->purchase_number
+);
+
+
+$purchase->delete();
 
     });
 

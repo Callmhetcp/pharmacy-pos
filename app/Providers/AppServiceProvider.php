@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
 use App\Models\Setting;
 use Illuminate\Support\Facades\View;
+use App\View\Composers\NotificationComposer;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,5 +30,6 @@ class AppServiceProvider extends ServiceProvider
         $view->with('setting', Setting::first());
 
     });
+     View::composer('*', NotificationComposer::class);
 }
 }

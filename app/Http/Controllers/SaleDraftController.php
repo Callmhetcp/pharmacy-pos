@@ -148,6 +148,7 @@ public function addItem(Request $request, SaleDraft $draft)
         'status' => 'open'
     ]);
 }
+   
     $request->validate([
         'medicine_id' => 'required|exists:medicines,id',
         'quantity'    => 'required|integer|min:1',
@@ -286,48 +287,41 @@ public function updateCustomer(Request $request, SaleDraft $draft)
         abort(403);
     }
 
-    
     $request->validate([
         'customer_id' => 'required|exists:customers,id'
     ]);
 
-
     $draft->update([
-
         'customer_id' => $request->customer_id
-
     ]);
 
-
     return response()->json([
-
         'success'=>true,
-
         'customer'=>$draft->customer
-
     ]);
 }
 
 public function printDraft($id)
 {
-  
-   $draft = SaleDraft::with([
+    $draft = SaleDraft::with([
         'customer',
         'items.medicine'
     ])
     ->where('user_id', $this->userId())
     ->findOrFail($id);
 
-    if ($draft->status === 'held') {
-    return response()->json([
-        'success' => false,
-        'message' => 'Resume the sale before printing.'
-    ], 403);
-}
+
+    if ($draft->status !== 'open') {
+
+        return redirect()
+            ->back()
+            ->with('error','Held drafts cannot be printed. Resume the sale first.');
+
+    }
+
 
     return view('sales.draft_receipt', compact('draft'));
 }
-
 public function updateQuantity(Request $request, SaleDraftItem $item)
 {
     if ($item->draft->user_id != $this->userId()) {
@@ -357,12 +351,6 @@ public function updateQuantity(Request $request, SaleDraftItem $item)
 
             $draft = $item->draft;
 
-            if ($draft->status === 'held') {
-                $draft->update([
-                    'status' => 'open'
-                ]);
-            }
-
             $item->delete();
 
             $draft->load('items.medicine');
@@ -383,6 +371,12 @@ public function updateQuantity(Request $request, SaleDraftItem $item)
 
     $draft = $item->draft;
 
+    if ($draft->status === 'held') {
+    $draft->update([
+        'status' => 'open'
+    ]);
+} 
+
     
     $draft->load('items.medicine');
 
@@ -401,11 +395,6 @@ public function clear(SaleDraft $draft)
     if ($draft->user_id != $this->userId()) {
         abort(403);
     }
-    if ($draft->status === 'held') {
-    $draft->update([
-        'status' => 'open'
-    ]);
-}
 
     $draft->items()->delete();
 
@@ -428,7 +417,10 @@ public function hold(SaleDraft $draft)
     }
     $draft->update([
         'status' => 'held'
+        
     ]);
+    
+    
 
     // Find another open draft
     $active = SaleDraft::with('items', 'customer')

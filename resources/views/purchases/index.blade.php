@@ -101,15 +101,17 @@
 
                         <tr>
 
-                            <th>#</th>
+                           <th>#</th>
                             <th>Purchase No</th>
                             <th>Supplier</th>
                             <th>Invoice</th>
                             <th>Date</th>
                             <th class="text-end">Grand Total</th>
+                            <th class="text-end">Paid</th>
+                            <th class="text-end">Balance</th>
+                            <th class="text-center">Status</th>
                             <th class="text-center">Items</th>
                             <th class="text-center">Actions</th>
-
                         </tr>
 
                     </thead>

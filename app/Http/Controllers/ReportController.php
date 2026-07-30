@@ -10,13 +10,52 @@ use App\Models\Medicine;
 use App\Models\PurchaseItem;
 use App\Models\Purchase;
 use App\Models\Customer;
+use App\Models\Expense;
+use App\Models\ExpenseCategory;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportController extends Controller
 {
     public function index()
     {
-        return view('reports.index');
+        $totalExpenses = Expense::sum('amount');
+
+
+$todayExpenses = Expense::whereDate(
+        'expense_date',
+        Carbon::today()
+    )
+    ->sum('amount');
+
+
+
+$monthExpenses = Expense::whereMonth(
+        'expense_date',
+        Carbon::now()->month
+    )
+    ->whereYear(
+        'expense_date',
+        Carbon::now()->year
+    )
+    ->sum('amount');
+
+
+
+$expenseByCategory = Expense::with('category')
+    ->selectRaw(
+        'expense_category_id, SUM(amount) as total'
+    )
+    ->groupBy('expense_category_id')
+    ->get();
+    return view(
+    'reports.index',
+    compact(
+        'totalExpenses',
+        'todayExpenses',
+        'monthExpenses',
+        'expenseByCategory'
+    )
+);
     }
 
   public function sales(Request $request)
@@ -509,5 +548,98 @@ public function customersPdf()
         'customer-report.pdf'
 
     );
+}
+public function expenses(Request $request)
+{
+
+    $from = $request->from;
+
+    $to = $request->to;
+
+
+
+    $expenses = Expense::with([
+        'category',
+        'user'
+    ])
+
+    ->when($from, function($query) use ($from){
+
+        $query->whereDate(
+            'expense_date',
+            '>=',
+            $from
+        );
+
+    })
+
+    ->when($to, function($query) use ($to){
+
+        $query->whereDate(
+            'expense_date',
+            '<=',
+            $to
+        );
+
+    })
+
+    ->latest()
+
+    ->get();
+
+
+
+
+    $totalExpense = $expenses->sum('amount');
+
+
+
+
+    $categoryExpenses = Expense::selectRaw(
+        'expense_category_id, SUM(amount) as total'
+    )
+
+    ->groupBy('expense_category_id')
+
+    ->with('category')
+
+    ->get();
+
+
+$monthlyExpenses = Expense::selectRaw(
+        "MONTH(expense_date) as month, SUM(amount) as total"
+    )
+    ->groupBy('month')
+    ->orderBy('month')
+    ->get();
+
+
+$monthLabels = [];
+
+$monthValues = [];
+
+
+foreach($monthlyExpenses as $item){
+
+    $monthLabels[] = Carbon::create()
+        ->month($item->month)
+        ->format('M');
+
+    $monthValues[] = $item->total;
+
+}
+
+    return view(
+    'reports.expenses',
+    compact(
+        'expenses',
+        'totalExpense',
+        'categoryExpenses',
+        'monthLabels',
+        'monthValues',
+        'from',
+        'to'
+    )
+);
 }
 }
