@@ -22,3 +22,12 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+# Electron / Build output
+dist/
+publish/
+
+# Runtime
+runtime/
+
+# Local documentation
+mariadb_help.txt
