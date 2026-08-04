@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Pagination\Paginator;
 use App\Models\Setting;
 use Illuminate\Support\Facades\View;
@@ -31,5 +32,9 @@ class AppServiceProvider extends ServiceProvider
 
     });
      View::composer('*', NotificationComposer::class);
+
+     if (app()->environment('production')){
+        URL::forceScheme('https');
+     }
 }
 }
