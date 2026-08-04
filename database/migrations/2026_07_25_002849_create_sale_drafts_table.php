@@ -1,8 +1,10 @@
 <?php
 
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+
 
 return new class extends Migration
 {
@@ -13,29 +15,36 @@ return new class extends Migration
     {
         Schema::create('sale_drafts', function (Blueprint $table) {
 
+
             $table->id();
 
+
             $table->string('draft_number')->unique();
+
 
             $table->foreignId('customer_id')
                 ->nullable()
                 ->constrained()
                 ->nullOnDelete();
 
+
             $table->foreignId('user_id')
                 ->constrained()
                 ->cascadeOnDelete();
 
-            $table->enum('status',[
+
+            $table->enum('status', [
                 'open',
+                'held',
                 'completed',
                 'cancelled'
             ])->default('open');
 
-            $table->timestamps();
 
+            $table->timestamps();
         });
     }
+
 
     /**
      * Reverse the migrations.
