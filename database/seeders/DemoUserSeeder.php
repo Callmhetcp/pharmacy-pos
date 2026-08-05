@@ -47,7 +47,7 @@ class DemoUserSeeder extends Seeder
                 [
                     'name' => $user['name'],
                     'role' => $user['role'],
-                    'status' => 'active',
+                    'status' => 'Active',
                     'avatar' => null,
                     'password' => Hash::make('Demo1234'),
                 ]

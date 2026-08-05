@@ -17,7 +17,7 @@ class DemoSupplierSeeder extends Seeder
                 'phone_number' => '08031234567',
                 'email' => 'sales@emzor.com',
                 'address' => 'Lagos, Nigeria',
-                'status' => 'active',
+                'status' => 'Active',
                 'notes' => 'Major supplier of OTC medicines.',
             ],
 
@@ -27,7 +27,7 @@ class DemoSupplierSeeder extends Seeder
                 'phone_number' => '08039876543',
                 'email' => 'orders@fidson.com',
                 'address' => 'Lagos, Nigeria',
-                'status' => 'active',
+                'status' => 'Active',
                 'notes' => 'Prescription medicines.',
             ],
 
@@ -37,7 +37,7 @@ class DemoSupplierSeeder extends Seeder
                 'phone_number' => '08035551234',
                 'email' => 'sales@swipha.com',
                 'address' => 'Ikeja, Lagos',
-                'status' => 'active',
+                'status' => 'Active',
                 'notes' => 'Hospital supplies.',
             ],
 
@@ -47,7 +47,7 @@ class DemoSupplierSeeder extends Seeder
                 'phone_number' => '08036667890',
                 'email' => 'info@maybaker.com',
                 'address' => 'Lagos, Nigeria',
-                'status' => 'active',
+                'status' => 'Active',
                 'notes' => 'General pharmaceuticals.',
             ],
 
@@ -57,7 +57,7 @@ class DemoSupplierSeeder extends Seeder
                 'phone_number' => '08034445566',
                 'email' => 'orders@drugfield.com',
                 'address' => 'Lagos, Nigeria',
-                'status' => 'active',
+                'status' => 'Active',
                 'notes' => 'Injectables and tablets.',
             ],
 
