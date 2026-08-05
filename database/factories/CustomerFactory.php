@@ -10,13 +10,13 @@ class CustomerFactory extends Factory
     {
         return [
 
-            'name' => fake()->name(),
+            'name' => $this->faker->name(),
 
-            'phone_number' => fake()->unique()->numerify('080########'),
+            'phone_number' => $this->faker->unique()->numerify('080########'),
 
-            'address' => fake()->address(),
+            'address' => $this->faker->address(),
 
-            'status' => fake()->randomElement([
+            'status' => $this->faker->randomElement([
                 'Active',
                 'Active',
                 'Active',

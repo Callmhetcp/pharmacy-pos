@@ -15,13 +15,13 @@ class PurchaseFactory extends Factory
     {
         return [
 
-            'purchase_number' => 'PUR-' . fake()->unique()->numberBetween(100000, 999999),
+            'purchase_number' => 'PUR-' . $this->faker->unique()->numberBetween(100000, 999999),
 
             'supplier_id' => Supplier::inRandomOrder()->value('id'),
 
-            'invoice_number' => 'INV-' . fake()->numberBetween(10000,99999),
+            'invoice_number' => 'INV-' . $this->faker->numberBetween(10000,99999),
 
-            'purchase_date' => fake()->dateTimeBetween('-6 months', 'now'),
+            'purchase_date' => $this->faker->dateTimeBetween('-6 months', 'now'),
 
             'user_id' => User::where('role','admin')->value('id')
                         ?? User::inRandomOrder()->value('id'),
