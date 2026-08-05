@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Models\Category;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 class MedicineFactory extends Factory
 {
@@ -25,7 +24,7 @@ class MedicineFactory extends Factory
 
         ];
 
-        $medicine = fake()->randomElement($catalog);
+        $medicine = $this->faker->randomElement($catalog);
 
         $category = Category::where('name', $medicine[1])->first();
 
@@ -33,17 +32,17 @@ class MedicineFactory extends Factory
 
             'name' => $medicine[0],
 
-            'barcode' => 'GP' . fake()->unique()->numerify('##########'),
+            'barcode' => 'GP' . $this->faker->unique()->numerify('##########'),
 
             'quantity' => 0,
 
-            'minimum_stock' => fake()->numberBetween(10, 30),
+            'minimum_stock' => $this->faker->numberBetween(10, 30),
 
             'cost_price' => $medicine[2],
 
             'selling_price' => $medicine[3],
 
-            'expiry_date' => fake()->dateTimeBetween('+6 months', '+3 years'),
+            'expiry_date' => $this->faker->dateTimeBetween('+6 months', '+3 years'),
 
             'category_id' => $category?->id,
 
