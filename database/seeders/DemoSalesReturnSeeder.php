@@ -12,125 +12,89 @@ class DemoSalesReturnSeeder extends Seeder
 {
     public function run(): void
     {
-
         DB::transaction(function () {
-
 
             $sales = Sale::with('items')
                 ->whereHas('items')
                 ->get();
 
-
             if ($sales->isEmpty()) {
                 return;
             }
 
-
+            $reasons = [
+                'Customer complaint',
+                'Wrong medicine',
+                'Damaged package',
+                'Customer changed mind',
+            ];
 
             for ($i = 1; $i <= 50; $i++) {
 
-
                 $sale = $sales->random();
-
-
 
                 $return = SalesReturn::create([
 
-                    'return_number' =>
-                    'SR-' . str_pad($i,6,'0',STR_PAD_LEFT),
+                    'return_number' => 'SR-' . str_pad($i, 6, '0', STR_PAD_LEFT),
 
                     'sale_id' => $sale->id,
 
                     'customer_id' => $sale->customer_id,
 
-                    'return_date' =>
-                    now()->subDays(random_int(1,90)),
+                    'return_date' => now()->subDays(random_int(1, 90)),
 
-                    'reason' => fake()->randomElement([
+                    'reason' => $reasons[array_rand($reasons)],
 
-                        'Customer complaint',
+                    'total_amount' => 0,
 
-                        'Wrong medicine',
-
-                        'Damaged package',
-
-                        'Customer changed mind'
-
-                    ]),
-
-                    'total_amount'=>0,
-
-                    'status'=>'Completed',
+                    'status' => 'Completed',
 
                 ]);
-
-
 
                 $total = 0;
 
+                $items = $sale->items->random(
+                    min(1, $sale->items->count())
+                );
 
-
-                $items = $sale->items
-                    ->random(min(1,$sale->items->count()));
-
-
-
-                foreach($items as $item){
-
+                foreach ($items as $item) {
 
                     $quantity = random_int(
                         1,
-                        min($item->quantity,3)
+                        min($item->quantity, 3)
                     );
 
-
-                    $subtotal =
-                    $quantity * $item->unit_price;
-
-
+                    $subtotal = $quantity * $item->unit_price;
 
                     SalesReturnItem::create([
 
-                        'sales_return_id'=>$return->id,
+                        'sales_return_id' => $return->id,
 
-                        'medicine_id'=>$item->medicine_id,
+                        'medicine_id' => $item->medicine_id,
 
-                        'quantity'=>$quantity,
+                        'quantity' => $quantity,
 
-                        'selling_price'=>$item->unit_price,
+                        'selling_price' => $item->unit_price,
 
-                        'subtotal'=>$subtotal,
+                        'subtotal' => $subtotal,
 
                     ]);
 
-
-
                     // Return stock back
-
-                    $item->medicine
-                        ->increment(
-                            'quantity',
-                            $quantity
-                        );
-
+                    $item->medicine->increment(
+                        'quantity',
+                        $quantity
+                    );
 
                     $total += $subtotal;
-
                 }
-
-
 
                 $return->update([
 
-                    'total_amount'=>$total
+                    'total_amount' => $total,
 
                 ]);
-
-
             }
-
-
         });
-
     }
 }
