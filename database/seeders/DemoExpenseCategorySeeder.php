@@ -2,14 +2,13 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\ExpenseCategory;
+use Illuminate\Database\Seeder;
 
 class DemoExpenseCategorySeeder extends Seeder
 {
     public function run(): void
     {
-
         $categories = [
 
             [
@@ -56,18 +55,21 @@ class DemoExpenseCategorySeeder extends Seeder
 
         ];
 
-
-        foreach($categories as $category)
-        {
+        foreach ($categories as $category) {
 
             ExpenseCategory::updateOrCreate(
+
                 [
-                    'name'=>$category['name']
+                    'name' => $category['name'],
                 ],
-                $category
+
+                [
+                    'description' => $category['description'],
+                    'status' => $category['status'],
+                ]
+
             );
 
         }
-
     }
 }
