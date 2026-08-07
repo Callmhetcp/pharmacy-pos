@@ -42,7 +42,9 @@ class DemoUserSeeder extends Seeder
 
             User::updateOrCreate(
 
-                ['email' => $user['email']],
+                [
+                    'email' => $user['email'],
+                ],
 
                 [
                     'name' => $user['name'],
@@ -56,6 +58,4 @@ class DemoUserSeeder extends Seeder
 
         }
     }
-
-    
 }
