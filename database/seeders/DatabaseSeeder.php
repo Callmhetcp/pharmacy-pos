@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
                 DemoCategorySeeder::class,
                 DemoSupplierSeeder::class,
                 DemoMedicineSeeder::class,
+                DemoCustomerSeeder::class,
             ]);
         }
 }
