@@ -2,87 +2,54 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\User;
-
+use Illuminate\Database\Seeder;
 
 class DemoExpenseSeeder extends Seeder
 {
-
     public function run(): void
     {
-
         $user = User::first();
-
         $categories = ExpenseCategory::all();
 
-
-        if(!$user || $categories->isEmpty())
-        {
+        if (!$user || $categories->isEmpty()) {
             return;
         }
 
+        $paymentMethods = [
+            'Cash',
+            'Transfer',
+            'Card',
+        ];
 
+        $start = Expense::count() + 1;
 
-       $start = Expense::count() + 1;
-
-
-        for($i = $start; $i <= $start + 199; $i++)
-        {
+        // Number of demo expenses
+        for ($i = $start; $i <= $start + 199; $i++) {
 
             $category = $categories->random();
 
-
             Expense::create([
 
+                'expense_number' => 'EXP-' . str_pad($i, 6, '0', STR_PAD_LEFT),
 
-                'expense_number' => 
-                    'EXP-' . str_pad($i,6,'0',STR_PAD_LEFT),
+                'expense_category_id' => $category->id,
 
+                'amount' => random_int(5000, 200000),
 
+                'expense_date' => now()->subDays(random_int(0, 180)),
 
-                'expense_category_id' => 
-                    $category->id,
+                'payment_method' => $paymentMethods[array_rand($paymentMethods)],
 
-
-
-                'amount' => 
-                    random_int(5000,200000),
-
-
-
-                'expense_date' => now()->subDays(random_int(0,180)),
-
-
-
-                'payment_method' => 
-                    collect([
-                        'Cash',
-                        'Transfer',
-                        'Card'
-                    ])->random(),
-
-
-
-                'description' =>
-                    $category->name.' payment',
-
-
+                'description' => $category->name . ' payment',
 
                 'receipt' => null,
 
-
-
-                'user_id' =>
-                    $user->id,
-
+                'user_id' => $user->id,
 
             ]);
-
         }
-
     }
-
 }
