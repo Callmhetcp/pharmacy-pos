@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
     libpq-dev \
+    postgresql-client \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd zip pdo pdo_mysql pdo_pgsql \
     && rm -rf /var/lib/apt/lists/*
@@ -40,5 +41,5 @@ EXPOSE 10000
 
 # Start Laravel
 CMD php artisan storage:link || true && \
-    php artisan migrate:fresh --seed --force && \
+    php artisan migrate --force && \
     php artisan serve --host=0.0.0.0 --port=${PORT:-10000}
