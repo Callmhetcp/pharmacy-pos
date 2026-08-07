@@ -28,6 +28,9 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ProfitLossController;
+use App\Models\Sale;
+use App\Models\SaleItem;
+use App\Models\Medicine;
 
 
 
@@ -42,7 +45,13 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-
+Route::get('/debug-db', function () {
+    return [
+        'sales' => Sale::count(),
+        'sale_items' => SaleItem::count(),
+        'medicines' => Medicine::count(),
+    ];
+});
 
 
 
