@@ -66,8 +66,20 @@ class DemoSupplierSeeder extends Seeder
         foreach ($suppliers as $supplier) {
 
             Supplier::updateOrCreate(
-                ['company' => $supplier['company']],
-                $supplier
+
+                [
+                    'company' => $supplier['company'],
+                ],
+
+                [
+                    'name' => $supplier['name'],
+                    'phone_number' => $supplier['phone_number'],
+                    'email' => $supplier['email'],
+                    'address' => $supplier['address'],
+                    'status' => $supplier['status'],
+                    'notes' => $supplier['notes'],
+                ]
+
             );
 
         }
