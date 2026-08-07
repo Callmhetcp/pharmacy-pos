@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Customer;
+use App\Models\Medicine;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use App\Models\Medicine;
-use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -17,27 +17,23 @@ class DemoSaleSeeder extends Seeder
         DB::transaction(function () {
 
             $customers = Customer::all();
-
             $cashier = User::where('role', 'cashier')->first();
-
             $medicines = Medicine::where('quantity', '>', 0)->get();
 
-
-            if (
-                $customers->isEmpty() ||
-                !$cashier ||
-                $medicines->isEmpty()
-            ) {
+            if ($customers->isEmpty() || !$cashier || $medicines->isEmpty()) {
                 return;
             }
 
+            $paymentMethods = [
+                'Cash',
+                'POS',
+                'Transfer',
+            ];
 
-
-            for ($i = 1; $i <= 1000; $i++) {
-
+            // Number of demo sales
+            for ($i = 1; $i <= 100; $i++) {
 
                 $subtotal = 0;
-
 
                 $sale = Sale::create([
 
@@ -49,9 +45,7 @@ class DemoSaleSeeder extends Seeder
 
                     'cashier_id' => $cashier->id,
 
-                    'sale_date' => now()
-                        ->subDays(random_int(1, 180)),
-
+                    'sale_date' => now()->subDays(random_int(1, 180)),
 
                     'subtotal' => 0,
 
@@ -65,46 +59,26 @@ class DemoSaleSeeder extends Seeder
 
                     'balance' => 0,
 
-                    'payment_method' => fake()->randomElement([
-                        'Cash',
-                        'POS',
-                        'Transfer'
-                    ]),
+                    'payment_method' => $paymentMethods[array_rand($paymentMethods)],
 
                 ]);
 
-
-
-                $items = $medicines->random(
-                    random_int(1,5)
-                );
-
-
+                $items = $medicines->random(random_int(1, 5));
 
                 foreach ($items as $medicine) {
-
 
                     if ($medicine->quantity <= 0) {
                         continue;
                     }
-
-
 
                     $quantity = random_int(
                         1,
                         min($medicine->quantity, 10)
                     );
 
-
-
-                    $itemTotal = 
-                        $quantity * $medicine->selling_price;
-
-
+                    $itemTotal = $quantity * $medicine->selling_price;
 
                     $subtotal += $itemTotal;
-
-
 
                     SaleItem::create([
 
@@ -122,32 +96,12 @@ class DemoSaleSeeder extends Seeder
 
                     ]);
 
-
-
-                    // Reduce stock
-
-                    $medicine->decrement(
-                        'quantity',
-                        $quantity
-                    );
-
+                    $medicine->decrement('quantity', $quantity);
                 }
 
+                $vatAmount = round($subtotal * 0.075, 2);
 
-
-                $vatAmount = 
-                    $subtotal * 0.075;
-
-
-
-                $totalAmount = 
-                    $subtotal + $vatAmount;
-
-
-
-                $amountPaid = $totalAmount;
-
-
+                $totalAmount = $subtotal + $vatAmount;
 
                 $sale->update([
 
@@ -157,14 +111,12 @@ class DemoSaleSeeder extends Seeder
 
                     'total_amount' => $totalAmount,
 
-                    'amount_paid' => $amountPaid,
+                    'amount_paid' => $totalAmount,
 
                     'balance' => 0,
 
                 ]);
-
             }
-
         });
     }
 }
