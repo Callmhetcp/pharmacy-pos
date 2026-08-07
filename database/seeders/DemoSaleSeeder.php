@@ -16,11 +16,16 @@ class DemoSaleSeeder extends Seeder
     {
         DB::transaction(function () {
 
-            $customers = Customer::all();
+           $customers = Customer::all();
             $cashier = User::where('role', 'cashier')->first();
             $medicines = Medicine::where('quantity', '>', 0)->get();
 
+            logger('Customers: ' . $customers->count());
+            logger('Cashier: ' . ($cashier ? 'FOUND' : 'NOT FOUND'));
+            logger('Medicines: ' . $medicines->count());
+
             if ($customers->isEmpty() || !$cashier || $medicines->isEmpty()) {
+                logger('DemoSaleSeeder exited early.');
                 return;
             }
 
