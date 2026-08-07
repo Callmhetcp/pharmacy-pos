@@ -26,11 +26,15 @@ class DemoPurchaseSeeder extends Seeder
                 return;
             }
 
+            $paymentStatuses = [
+                'Paid',
+                'Paid',
+                'Partial',
+                'Unpaid',
+            ];
 
             for ($i = 1; $i <= 250; $i++) {
 
-
-                // Create Purchase
                 $purchase = Purchase::create([
 
                     'purchase_number' => 'PUR-' . str_pad($i, 6, '0', STR_PAD_LEFT),
@@ -55,26 +59,17 @@ class DemoPurchaseSeeder extends Seeder
 
                 ]);
 
-
                 $grandTotal = 0;
 
-
-                // Select medicines for this purchase
                 $items = $medicines->random(random_int(2, 8));
-
 
                 foreach ($items as $medicine) {
 
-
                     $quantity = random_int(10, 100);
-
 
                     $subtotal = $quantity * $medicine->cost_price;
 
-
                     $grandTotal += $subtotal;
-
-
 
                     PurchaseItem::create([
 
@@ -82,7 +77,7 @@ class DemoPurchaseSeeder extends Seeder
 
                         'medicine_id' => $medicine->id,
 
-                        'batch_number' => 'BATCH-' . strtoupper(fake()->bothify('??###')),
+                        'batch_number' => 'BATCH-' . strtoupper(substr(md5(uniqid((string) mt_rand(), true)), 0, 5)),
 
                         'expiry_date' => now()
                             ->addMonths(random_int(12, 36))
@@ -98,59 +93,31 @@ class DemoPurchaseSeeder extends Seeder
 
                     ]);
 
-
-                    // Increase medicine stock
-
+                    // Update medicine stock
                     $medicine->increment('quantity', $quantity);
-
                 }
 
-
-
-                // Generate payment status
-
-                $paymentStatus = fake()->randomElement([
-
-                    'Paid',
-
-                    'Paid',
-
-                    'Partial',
-
-                    'Unpaid',
-
-                ]);
-
-
+                $paymentStatus = $paymentStatuses[array_rand($paymentStatuses)];
 
                 if ($paymentStatus === 'Paid') {
 
                     $amountPaid = $grandTotal;
 
-                }
+                } elseif ($paymentStatus === 'Partial') {
 
-                elseif ($paymentStatus === 'Partial') {
+                    $percentage = random_int(30, 80) / 100;
 
                     $amountPaid = round(
-                        $grandTotal * fake()->randomFloat(2, 0.3, 0.8),
+                        $grandTotal * $percentage,
                         2
                     );
 
-                }
-
-                else {
+                } else {
 
                     $amountPaid = 0;
-
                 }
 
-
-
                 $balance = $grandTotal - $amountPaid;
-
-
-
-                // Update purchase totals
 
                 $purchase->update([
 
@@ -163,9 +130,7 @@ class DemoPurchaseSeeder extends Seeder
                     'payment_status' => $paymentStatus,
 
                 ]);
-
             }
-
         });
     }
 }
