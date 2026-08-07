@@ -17,21 +17,25 @@ class DemoPurchaseReturnSeeder extends Seeder
 
             $user = User::where('role', 'admin')->first();
 
-            $purchases = Purchase::with('items')
+            $purchases = Purchase::with('items.medicine')
                 ->whereHas('items')
                 ->get();
-
 
             if (!$user || $purchases->isEmpty()) {
                 return;
             }
 
+            $reasons = [
+                'Damaged stock',
+                'Expired medicine',
+                'Wrong supply',
+                'Supplier issue',
+            ];
 
-            for ($i = 1; $i <= 50; $i++) {
-
+            // Number of demo purchase returns
+            for ($i = 1; $i <= 30; $i++) {
 
                 $purchase = $purchases->random();
-
 
                 $return = PurchaseReturn::create([
 
@@ -41,15 +45,9 @@ class DemoPurchaseReturnSeeder extends Seeder
 
                     'supplier_id' => $purchase->supplier_id,
 
-                    'return_date' => now()
-                        ->subDays(random_int(1,90)),
+                    'return_date' => now()->subDays(random_int(1, 90)),
 
-                    'reason' => fake()->randomElement([
-                        'Damaged stock',
-                        'Expired medicine',
-                        'Wrong supply',
-                        'Supplier issue'
-                    ]),
+                    'reason' => $reasons[array_rand($reasons)],
 
                     'total_amount' => 0,
 
@@ -59,29 +57,20 @@ class DemoPurchaseReturnSeeder extends Seeder
 
                 ]);
 
-
-
                 $total = 0;
 
-
-                $items = $purchase->items
-                    ->random(min(2,$purchase->items->count()));
-
-
+                $items = $purchase->items->random(
+                    min(2, $purchase->items->count())
+                );
 
                 foreach ($items as $item) {
 
-
                     $quantity = random_int(
                         1,
-                        min($item->quantity,5)
+                        min($item->quantity, 5)
                     );
 
-
-                    $subtotal =
-                        $quantity * $item->cost_price;
-
-
+                    $subtotal = $quantity * $item->cost_price;
 
                     PurchaseReturnItem::create([
 
@@ -97,31 +86,18 @@ class DemoPurchaseReturnSeeder extends Seeder
 
                     ]);
 
-
-
-                    // Remove returned stock
-
-                    $item->medicine
-                        ->decrement(
-                            'quantity',
-                            $quantity
-                        );
-
+                    // Reduce medicine stock
+                    if ($item->medicine) {
+                        $item->medicine->decrement('quantity', $quantity);
+                    }
 
                     $total += $subtotal;
-
                 }
 
-
-
                 $return->update([
-
-                    'total_amount' => $total
-
+                    'total_amount' => $total,
                 ]);
-
             }
-
         });
     }
 }
