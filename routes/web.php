@@ -28,15 +28,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ProfitLossController;
-use App\Models\User;
-use App\Models\Supplier;
-use App\Models\Category;
 use App\Models\Medicine;
-use App\Models\Customer;
-use App\Models\Purchase;
-use App\Models\PurchaseItem;
-use App\Models\Sale;
-use App\Models\SaleItem;
 
 
 
@@ -51,18 +43,15 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/debug-db', function () {
-    return [
-        'users' => User::count(),
-        'categories' => Category::count(),
-        'suppliers' => Supplier::count(),
-        'medicines' => Medicine::count(),
-        'customers' => Customer::count(),
-        'purchases' => Purchase::count(),
-        'purchase_items' => PurchaseItem::count(),
-        'sales' => Sale::count(),
-        'sale_items' => SaleItem::count(),
-    ];
+
+Route::get('/debug-medicines', function () {
+    return Medicine::select(
+        'id',
+        'name',
+        'quantity',
+        'expiry_date',
+        'category_id'
+    )->get();
 });
 
 
