@@ -1084,30 +1084,32 @@ document.addEventListener("click", function(e){
 });
 
 // ===============================
-// LIVE MEDICINE SEARCH
+// MEDICINE SEARCH
 // ===============================
 
 const medicineSearch = document.getElementById("medicineSearch");
 const medicineResults = document.getElementById("medicineResults");
 const medicineId = document.getElementById("medicine_id");
 
-if (medicineSearch) {
 
-    medicineSearch.addEventListener("input", function () {
+// Load medicines
+function loadMedicines(search = "") {
 
-        let search = this.value.trim();
+    if (!medicineSearch || !medicineResults) {
+        return;
+    }
 
-        if (search.length < 2) {
+    fetch(`/medicines/search?search=${encodeURIComponent(search)}`)
 
-            medicineResults.style.display = "none";
-            medicineResults.innerHTML = "";
-            return;
+        .then(response => {
 
-        }
+            if (!response.ok) {
+                throw new Error("Failed to load medicines");
+            }
 
-        fetch(`/medicines/search?search=${encodeURIComponent(search)}`)
+            return response.json();
 
-        .then(response => response.json())
+        })
 
         .then(data => {
 
@@ -1116,8 +1118,12 @@ if (medicineSearch) {
             if (data.length === 0) {
 
                 html = `
-                    <div class="list-group-item text-danger">
+                    <div class="list-group-item text-muted text-center py-3">
+
+                        <i class="fas fa-search me-2"></i>
+
                         No medicine found
+
                     </div>
                 `;
 
@@ -1126,26 +1132,41 @@ if (medicineSearch) {
                 data.forEach(medicine => {
 
                     html += `
+
                         <a href="#"
                            class="list-group-item list-group-item-action medicine-option"
                            data-id="${medicine.id}"
                            data-name="${medicine.name}">
 
-                            <div class="d-flex justify-content-between">
+                            <div class="d-flex justify-content-between align-items-center">
 
-                                <strong>${medicine.name}</strong>
+                                <div>
+
+                                    <strong>
+                                        ${medicine.name}
+                                    </strong>
+
+                                    <small class="d-block text-muted">
+
+                                        ₦${parseFloat(
+                                            medicine.selling_price || 0
+                                        ).toLocaleString()}
+
+                                    </small>
+
+                                </div>
+
 
                                 <span class="badge bg-success">
-                                    ${medicine.quantity} in stock
+
+                                    ${medicine.quantity ?? 0} in stock
+
                                 </span>
 
                             </div>
 
-                            <small class="text-muted">
-                                ₦${parseFloat(medicine.selling_price).toLocaleString()}
-                            </small>
-
                         </a>
+
                     `;
 
                 });
@@ -1153,9 +1174,59 @@ if (medicineSearch) {
             }
 
             medicineResults.innerHTML = html;
+
+            medicineResults.style.display = "block";
+
+            selectedMedicine = -1;
+
+        })
+
+        .catch(error => {
+
+            console.error("Medicine search error:", error);
+
+            medicineResults.innerHTML = `
+
+                <div class="list-group-item text-danger text-center">
+
+                    Unable to load medicines.
+
+                </div>
+
+            `;
+
             medicineResults.style.display = "block";
 
         });
+}
+
+
+// ===============================
+// SHOW ALL MEDICINES ON FOCUS
+// ===============================
+
+if (medicineSearch) {
+
+    medicineSearch.addEventListener("focus", function () {
+
+        loadMedicines(this.value.trim());
+
+    });
+
+
+    // ===============================
+    // FILTER WHILE TYPING
+    // ===============================
+
+    medicineSearch.addEventListener("input", function () {
+
+        const search = this.value.trim();
+
+        // Clear previously selected medicine
+        medicineId.value = "";
+
+        // Show all medicines if empty
+        loadMedicines(search);
 
     });
 
@@ -1164,73 +1235,105 @@ if (medicineSearch) {
 // KEYBOARD NAVIGATION
 // ===============================
 
-medicineSearch.addEventListener("keydown", function(e){
+if (medicineSearch) {
 
-    const results = document.querySelectorAll(".medicine-option");
+    medicineSearch.addEventListener("keydown", function(e) {
 
-    if(results.length === 0) return;
+        const results = document.querySelectorAll(".medicine-option");
 
-    if(e.key === "ArrowDown"){
+        if (results.length === 0) return;
 
-        e.preventDefault();
 
-        selectedMedicine++;
+        // ===============================
+        // ARROW DOWN
+        // ===============================
 
-        if(selectedMedicine >= results.length){
+        if (e.key === "ArrowDown") {
 
-            selectedMedicine = 0;
+            e.preventDefault();
 
-        }
+            selectedMedicine++;
 
-        highlightMedicine(results);
+            if (selectedMedicine >= results.length) {
 
-    }
+                selectedMedicine = 0;
 
-    if(e.key === "ArrowUp"){
+            }
 
-        e.preventDefault();
-
-        selectedMedicine--;
-
-        if(selectedMedicine < 0){
-
-            selectedMedicine = results.length - 1;
+            highlightMedicine(results);
 
         }
 
-        highlightMedicine(results);
 
-    }
+        // ===============================
+        // ARROW UP
+        // ===============================
 
-    if(e.key === "Enter"){
+        if (e.key === "ArrowUp") {
 
-        e.preventDefault();
+            e.preventDefault();
 
-        if(selectedMedicine >= 0){
+            selectedMedicine--;
 
-            results[selectedMedicine].click();
+            if (selectedMedicine < 0) {
+
+                selectedMedicine = results.length - 1;
+
+            }
+
+            highlightMedicine(results);
 
         }
 
-    }
 
-});
+        // ===============================
+        // ENTER
+        // ===============================
 
-function highlightMedicine(results){
+        if (e.key === "Enter") {
 
-    results.forEach(item=>{
+            e.preventDefault();
+
+            if (selectedMedicine >= 0) {
+
+                results[selectedMedicine].click();
+
+            }
+
+        }
+
+    });
+
+}
+
+
+// ===============================
+// HIGHLIGHT SELECTED MEDICINE
+// ===============================
+
+function highlightMedicine(results) {
+
+    results.forEach(item => {
 
         item.classList.remove("active");
 
     });
 
-    results[selectedMedicine].classList.add("active");
 
-    results[selectedMedicine].scrollIntoView({
+    if (
+        selectedMedicine >= 0 &&
+        selectedMedicine < results.length
+    ) {
 
-        block:"nearest"
+        results[selectedMedicine].classList.add("active");
 
-    });
+        results[selectedMedicine].scrollIntoView({
+
+            block: "nearest"
+
+        });
+
+    }
 
 }
 
