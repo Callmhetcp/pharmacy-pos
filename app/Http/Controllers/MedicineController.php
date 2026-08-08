@@ -12,22 +12,47 @@ use App\Helpers\NotificationHelper;
 
 class MedicineController extends Controller
 {
-   public function index(Request $request)
+  public function index(Request $request)
 {
-    $search = $request->search;
+    $search = trim($request->input('search', ''));
 
     $medicines = Medicine::with('category')
         ->when($search, function ($query) use ($search) {
 
-            $query->where('name', 'like', "%{$search}%")
-                  ->orWhere('quantity', 'like', "%{$search}%")
-                  ->orWhere('cost_price', 'like', "%{$search}%")
-                  ->orWhere('selling_price', 'like', "%{$search}%")
-                  ->orWhereHas('category', function ($q) use ($search) {
+            $search = strtolower($search);
 
-                      $q->where('name', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
 
-                  });
+                $q->whereRaw(
+                    'LOWER(name) LIKE ?',
+                    ["%{$search}%"]
+                )
+
+                ->orWhereRaw(
+                    'CAST(quantity AS CHAR) LIKE ?',
+                    ["%{$search}%"]
+                )
+
+                ->orWhereRaw(
+                    'CAST(cost_price AS CHAR) LIKE ?',
+                    ["%{$search}%"]
+                )
+
+                ->orWhereRaw(
+                    'CAST(selling_price AS CHAR) LIKE ?',
+                    ["%{$search}%"]
+                )
+
+                ->orWhereHas('category', function ($categoryQuery) use ($search) {
+
+                    $categoryQuery->whereRaw(
+                        'LOWER(name) LIKE ?',
+                        ["%{$search}%"]
+                    );
+
+                });
+
+            });
 
         })
         ->latest()
@@ -38,11 +63,21 @@ class MedicineController extends Controller
 
     if ($request->ajax()) {
 
-        return view('medicines.table', compact('medicines'))->render();
+        return view(
+            'medicines.table',
+            compact('medicines')
+        )->render();
 
     }
 
-    return view('medicines.index', compact('medicines', 'categories', 'search'));
+    return view(
+        'medicines.index',
+        compact(
+            'medicines',
+            'categories',
+            'search'
+        )
+    );
 }
 
     public function store(Request $request){
