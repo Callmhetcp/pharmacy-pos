@@ -180,11 +180,19 @@ class MedicineController extends Controller
 
  public function search(Request $request)
 {
-    $search = $request->search;
+    $search = strtolower(trim($request->input('search', '')));
 
-    $medicines = Medicine::where('name', 'like', "%{$search}%")
+    $medicines = Medicine::whereRaw(
+            'LOWER(name) LIKE ?',
+            ["%{$search}%"]
+        )
         ->where('quantity', '>', 0)
-        ->select('id', 'name', 'selling_price', 'quantity')
+        ->select(
+            'id',
+            'name',
+            'selling_price',
+            'quantity'
+        )
         ->limit(10)
         ->get();
 
