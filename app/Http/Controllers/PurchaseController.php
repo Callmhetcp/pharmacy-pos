@@ -266,7 +266,7 @@ public function store(Request $request)
     });
 
     return redirect()
-        ->route('purchases.index')
+        ->route('purchase.index')
         ->with('success', 'Purchase saved successfully.');
 }
 /*
