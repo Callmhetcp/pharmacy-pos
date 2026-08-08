@@ -1218,15 +1218,21 @@ if (medicineSearch) {
     // FILTER WHILE TYPING
     // ===============================
 
+    let medicineSearchTimeout;
+
     medicineSearch.addEventListener("input", function () {
 
         const search = this.value.trim();
 
-        // Clear previously selected medicine
         medicineId.value = "";
 
-        // Show all medicines if empty
-        loadMedicines(search);
+        clearTimeout(medicineSearchTimeout);
+
+        medicineSearchTimeout = setTimeout(function () {
+
+            loadMedicines(search);
+
+        }, 300);
 
     });
 
